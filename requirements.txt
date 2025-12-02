@@ -1,0 +1,8 @@
+Django
+djangorestframework
+django-cors-headers
+tensorflow-cpu
+numpy
+pandas
+gunicorn
+whitenoise
