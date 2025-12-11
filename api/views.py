@@ -131,3 +131,22 @@ def search_whitelist(request):
         results = WhitelistDomain.objects.filter(domain__icontains=query)[:20].values('domain', 'rank')
         return Response(list(results))
     return Response([])
+
+# --- NEW: WHITELIST OVERRIDE API ---
+@api_view(['POST'])
+def report_safe(request):
+    url = request.data.get('url', '')
+    if not url: return Response({'error': 'No URL'}, status=400)
+    
+    try:
+        # Domain nikalo (e.g., render.com)
+        domain = url.split('//')[-1].split('/')[0]
+        
+        # Database mein daal do (Rank 50 de do taake trusted rahe)
+        obj, created = WhitelistDomain.objects.get_or_create(
+            domain=domain,
+            defaults={'rank': 50}
+        )
+        return Response({'status': 'Whitelisted', 'domain': domain})
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
