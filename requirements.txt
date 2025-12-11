@@ -8,6 +8,5 @@ psycopg2-binary
 requests
 beautifulsoup4
 numpy
-pandas
 scikit-learn
 joblib

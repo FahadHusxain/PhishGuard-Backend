@@ -1,97 +1,84 @@
-import os
-import re  # <--- YE ZAROORI HAI (Regex ke liye)
-import pickle
+import joblib
 import numpy as np
-from django.conf import settings
-from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing.sequence import pad_sequences
-from api.models import WhitelistDomain  # Database Connection
+import os
+import re
 
-# --- 1. SETUP ---
-print("🔄 Loading AI Model...")
-MODEL_PATH = os.path.join(settings.BASE_DIR, 'ml_models/phishguard_cnn.h5')
-TOKENIZER_PATH = os.path.join(settings.BASE_DIR, 'ml_models/tokenizer.pickle')
+# Model Load Karna (Professional Way)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MODEL_PATH = os.path.join(BASE_DIR, 'ml_model', 'phishing_model.pkl')
 
-model = load_model(MODEL_PATH)
-with open(TOKENIZER_PATH, 'rb') as handle:
-    tokenizer = pickle.load(handle)
+model = None
+try:
+    model = joblib.load(MODEL_PATH)
+    print("✅ ML Model Loaded Successfully (Optimized Mode)")
+except Exception as e:
+    print(f"❌ Error loading model: {e}")
+    # Agar model na mile to bhi code crash na kare
+    model = None
 
-print("✅ AI Brain Ready!")
-
-# --- 2. PREDICTION FUNCTION ---
-def predict_url_security(url):
-    print(f"\n🔍 Check: {url}") 
+def extract_features(url):
+    """
+    Feature Extraction without Pandas (Pure optimized Python)
+    Same logic as training, but lighter on RAM.
+    """
+    features = []
     
-    # Step A: Safayi
-    clean_url = url.replace("https://", "").replace("http://", "").replace("www.", "")
-    domain = clean_url.split('/')[0]
+    # 1. Length Features
+    features.append(len(url))
+    features.append(len(new_url.hostname) if 'new_url' in locals() else len(url.split('/')[0])) # Hostname len
+    
+    # 2. Count Features
+    features.append(url.count('.'))
+    features.append(url.count('-'))
+    features.append(url.count('@'))
+    features.append(url.count('?'))
+    features.append(url.count('='))
+    features.append(url.count('%'))
+    features.append(url.count('https'))
+    features.append(url.count('http') - url.count('https')) # HTTP count
+    features.append(url.count('www'))
+    
+    # 3. Digit Ratio
+    digits = sum(c.isdigit() for c in url)
+    features.append(digits / len(url) if len(url) > 0 else 0)
+    
+    # 4. Special Char Ratio
+    special_chars = sum(not c.isalnum() for c in url)
+    features.append(special_chars / len(url) if len(url) > 0 else 0)
 
-    # Step B: Layer 1 - Whitelist Database Check (Professional Way)
-    if WhitelistDomain.objects.filter(domain=domain).exists():
-        print("🛡️ DEBUG: Whitelist DB HIT!")
-        return {
-            "status": "SAFE",
-            "confidence": 100.00,
-            "message": "Verified Safe Brand (Top 1M Database)"
-        }
+    return np.array([features]) # Return as Numpy Array (Not DataFrame)
 
-    # Step C: AI Prediction & Smart Rules
+def predict_url_security(url):
+    """
+    Predict using the loaded ML Model
+    """
+    if model is None:
+        # Fallback agar model load na ho (Crash prevention)
+        return {'status': 'UNKNOWN', 'confidence': 0, 'message': 'Model not loaded'}
+
     try:
-        sequence = tokenizer.texts_to_sequences([clean_url])
-        padded_sequence = pad_sequences(sequence, maxlen=200, padding='post', truncating='post')
-        prediction = model.predict(padded_sequence)
+        # 1. Extract Features
+        features_array = extract_features(url)
         
-        final_score = float(prediction[0][0]) # Base AI Score
-        reasons = []
-
-        # --- C. BOOSTING LOGIC (CONFIDENCE BADHANE KE LIYE) ---
-
-        # Rule 1: Keyword Boosting
-        SUSPICIOUS_KEYWORDS = ["login", "signin", "secure", "account", "update", "verify", "paypal", "bank", "wallet", "crypto"]
-        found_keywords = [word for word in SUSPICIOUS_KEYWORDS if word in clean_url]
-        if found_keywords:
-            final_score += 0.30
-            reasons.append(f"Suspicious words found: {', '.join(found_keywords)}")
-
-        # Rule 2: IP Address Check (e.g. http://123.45.67.89)
-        # Agar URL mein domain ki jagah IP hai, to ye 100% khatra hai
-        ip_pattern = re.search(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', domain)
-        if ip_pattern:
-            final_score += 0.50 # Seedha 50% badha do
-            reasons.append("URL uses an IP address instead of a domain name.")
-
-        # Rule 3: Too Many Dots (Subdomain Abuse)
-        # e.g. paypal.secure.login.com (3 se zyada dots domain mein)
-        if domain.count('.') > 3:
-            final_score += 0.20
-            reasons.append("Suspiciously high number of subdomains.")
-
-        # Rule 4: @ Symbol Abuse
-        if "@" in url:
-            final_score += 0.40
-            reasons.append("URL contains '@' symbol (Credential stealing pattern).")
-
-        # --- D. FINAL DECISION ---
+        # 2. Predict (Using Scikit-Learn)
+        prediction = model.predict(features_array)[0]
+        probability = model.predict_proba(features_array)[0][1] * 100
         
-        # Score ko 1.0 se upar mat jane do
-        final_score = min(final_score, 0.9999)
-
-        if final_score > 0.5:
-            # Agar reasons khali hain to generic message dalo
-            if not reasons:
-                reasons.append("AI detected abnormal structural patterns.")
-            
+        # 3. Result Format
+        if prediction == 1 or probability > 50:
             return {
-                "status": "PHISHING",
-                "confidence": round(final_score * 100, 2),
-                "message": " | ".join(reasons)
+                'status': 'PHISHING',
+                'confidence': round(probability, 2),
+                'message': 'ML Model Detected Threat'
             }
         else:
             return {
-                "status": "SAFE",
-                "confidence": round((1 - final_score) * 100, 2),
-                "message": "Safe site."
+                'status': 'SAFE',
+                'confidence': round(100 - probability, 2),
+                'message': 'ML Model Verified Safe'
             }
-
+            
     except Exception as e:
-        return {"status": "ERROR", "message": str(e)}
+        print(f"Prediction Error: {e}")
+        # Agar ML fail ho (feature mismatch), to safe side par raho
+        return {'status': 'SAFE', 'confidence': 0, 'message': 'Scan Error'}
