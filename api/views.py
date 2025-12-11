@@ -3,39 +3,26 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import WhitelistDomain, ScanLog
 from .ml_logic import predict_url_security
-from django.contrib.auth.models import User
-from django.utils import timezone
-import datetime
 import socket
 import requests
-from bs4 import BeautifulSoup
 
-# --- HELPER 1: CONTENT ANALYSIS (NLP) ---
-def analyze_content(url):
-    try:
-        response = requests.get(url, timeout=2)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        title = soup.title.string if soup.title else "No Title"
-        text = soup.get_text().lower()
-        keywords = ['login', 'password', 'verify', 'bank', 'secure', 'account', 'signin']
-        found_keywords = [word for word in keywords if word in text]
-        return title, found_keywords
-    except:
-        return "Unreachable", []
-
-# --- HELPER 2: LOCATION ---
+# --- HELPER: Safe IP Lookup ---
 def get_ip_location(url):
     try:
-        domain = url.split('//')[-1].split('/')[0]
+        # Domain nikalo
+        domain = url.split('//')[-1].split('/')[0].split('?')[0]
         ip_address = socket.gethostbyname(domain)
+        
+        # Render par kabhi kabhi ye timeout hota hai, isliye chota timeout rakho
         try:
-            response = requests.get(f'http://ip-api.com/json/{ip_address}?fields=country', timeout=2).json()
-            country = response.get('country', 'Unknown')
+            geo_url = f'http://ip-api.com/json/{ip_address}?fields=country'
+            response = requests.get(geo_url, timeout=1) # Sirf 1 second wait karo
+            data = response.json()
+            return ip_address, data.get('country', 'Unknown')
         except:
-            country = "Unknown"
-        return ip_address, country
+            return ip_address, "Unknown"
     except:
-        return "Unknown Host", "Unknown"
+        return "0.0.0.0", "Unknown"
 
 # --- API VIEWS ---
 def home(request):
@@ -46,31 +33,41 @@ def predict_url(request):
     url = request.data.get('url', '')
     if not url: return Response({'error': 'No URL'}, status=400)
     
-    # 1. Check Whitelist FIRST (Sabse Pehle)
+    # 1. Whitelist Check
     domain = url.split('//')[-1].split('/')[0]
     whitelist_obj = WhitelistDomain.objects.filter(domain__icontains=domain).first()
     
     if whitelist_obj and whitelist_obj.rank > 0:
-        # Agar Whitelist mein hai to SCAN MAT KARO, seedha SAFE bolo
+        # Whitelist hone par bhi Log Save karna zaroori hai Dashboard ke liye
+        ScanLog.objects.create(url=url, status='SAFE', confidence=100, ip_address="Whitelisted", country="Safe Zone")
         return Response({'status': 'SAFE', 'confidence': 100, 'country': 'Whitelisted'})
 
-    # 2. AI Scan & Logic
+    # 2. Logic Check
     result = predict_url_security(url)
-    ip, country = get_ip_location(url)
-    # NLP Analysis (Sirf dikhane ke liye, logic mein interfere nahi karega)
-    analyze_content(url) 
+    
+    # 3. Location & Logging (FAIL SAFE BLOCK)
+    try:
+        ip, country = get_ip_location(url)
+        ScanLog.objects.create(
+            url=url, 
+            status=result['status'], 
+            confidence=result['confidence'], 
+            ip_address=ip, 
+            country=country
+        )
+    except Exception as e:
+        # Agar Database save fail ho, tab bhi User ko result dikhao, crash mat karo
+        print(f"Logging Error: {e}")
 
-    ScanLog.objects.create(url=url, status=result['status'], confidence=result['confidence'], ip_address=ip, country=country)
     return Response(result)
 
-# --- 🔥 YE FUNCTION MISSING THA (Isliye Button kharab tha) ---
+# --- Baki APIs Same Rahengi ---
 @api_view(['POST'])
 def report_safe(request):
     url = request.data.get('url', '')
     if not url: return Response({'error': 'No URL'}, status=400)
     try:
         domain = url.split('//')[-1].split('/')[0]
-        # Database mein daal do taake agli baar block na ho
         WhitelistDomain.objects.get_or_create(domain=domain, defaults={'rank': 50})
         return Response({'status': 'Whitelisted'})
     except Exception as e:
@@ -92,28 +89,6 @@ def search_whitelist(request):
         return Response(list(results))
     return Response([])
 
-# --- 🛠️ EMERGENCY FIX: CREATE ADMIN & WHITELIST ---
 @api_view(['GET'])
 def fix_everything(request):
-    status_report = {}
-
-    # 1. Admin User Banao
-    try:
-        if not User.objects.filter(username='admin').exists():
-            User.objects.create_superuser('admin', '', 'admin')
-            status_report['Admin User'] = "✅ Created (User: admin, Pass: admin)"
-        else:
-            status_report['Admin User'] = "ℹ️ Already Exists"
-    except Exception as e:
-        status_report['Admin User'] = f"❌ Error: {str(e)}"
-
-    # 2. Render ko Whitelist Karo
-    try:
-        domains = ['render.com', 'dashboard.render.com', 'github.com']
-        for d in domains:
-            WhitelistDomain.objects.get_or_create(domain=d, defaults={'rank': 50})
-        status_report['Whitelist'] = "✅ Render & Github Whitelisted!"
-    except Exception as e:
-        status_report['Whitelist'] = f"❌ Error: {str(e)}"
-
-    return Response(status_report)
+    return Response({"status": "Admin Fix Tool is Active"})
