@@ -7,7 +7,3 @@ dj-database-url
 psycopg2-binary
 requests
 beautifulsoup4
-scikit-learn
-numpy
-pandas
-joblib
