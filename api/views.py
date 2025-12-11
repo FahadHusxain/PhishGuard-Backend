@@ -3,6 +3,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import WhitelistDomain, ScanLog
 from .ml_logic import predict_url_security
+from django.contrib.auth.models import User
 from django.utils import timezone
 import datetime
 import socket
@@ -90,3 +91,29 @@ def search_whitelist(request):
         results = WhitelistDomain.objects.filter(domain__icontains=query)[:20].values('domain', 'rank')
         return Response(list(results))
     return Response([])
+
+# --- 🛠️ EMERGENCY FIX: CREATE ADMIN & WHITELIST ---
+@api_view(['GET'])
+def fix_everything(request):
+    status_report = {}
+
+    # 1. Admin User Banao
+    try:
+        if not User.objects.filter(username='admin').exists():
+            User.objects.create_superuser('admin', '', 'admin')
+            status_report['Admin User'] = "✅ Created (User: admin, Pass: admin)"
+        else:
+            status_report['Admin User'] = "ℹ️ Already Exists"
+    except Exception as e:
+        status_report['Admin User'] = f"❌ Error: {str(e)}"
+
+    # 2. Render ko Whitelist Karo
+    try:
+        domains = ['render.com', 'dashboard.render.com', 'github.com']
+        for d in domains:
+            WhitelistDomain.objects.get_or_create(domain=d, defaults={'rank': 50})
+        status_report['Whitelist'] = "✅ Render & Github Whitelisted!"
+    except Exception as e:
+        status_report['Whitelist'] = f"❌ Error: {str(e)}"
+
+    return Response(status_report)
