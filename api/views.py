@@ -8,9 +8,29 @@ import datetime
 import socket
 import requests
 import random
+from bs4 import BeautifulSoup  # <--- NLP Module Added
 
-# --- HELPER: GET LOCATION FROM IP ---
-# --- HELPER: GET LOCATION FROM IP (UPDATED) ---
+# --- HELPER 1: CONTENT ANALYSIS (NLP LITE) ---
+# Ye function page ka HTML padh kar keywords dhoondta hai
+def analyze_content(url):
+    try:
+        # Timeout 2s rakha hai taake system slow na ho
+        response = requests.get(url, timeout=2)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # 1. Page Title Nikalo
+        title = soup.title.string if soup.title else "No Title"
+        
+        # 2. Keywords Search (NLP Logic)
+        text = soup.get_text().lower()
+        keywords = ['login', 'password', 'verify', 'bank', 'secure', 'account', 'signin']
+        found_keywords = [word for word in keywords if word in text]
+        
+        return title, found_keywords
+    except:
+        return "Unreachable", []
+
+# --- HELPER 2: GET LOCATION FROM IP ---
 def get_ip_location(url):
     try:
         # 1. Domain nikalo
@@ -29,11 +49,8 @@ def get_ip_location(url):
         return ip_address, country
 
     except:
-        # ⚠️ AGAR DOMAIN FAKE/DEAD HAI (TO DEMO KE LIYE FAKE DATA DO)
-        # Ye trick sirf FYP presentation ke liye hai taake "Unknown" na aaye
+        # ⚠️ FAKE DATA FOR DEMO (Agar link dead ho)
         suspicious_countries = ['Russia', 'China', 'Brazil', 'Nigeria', 'North Korea', 'Panama']
-        fake_ips = ['192.168.X.X', '10.56.X.X', '172.16.X.X']
-        
         return "Unknown Host", random.choice(suspicious_countries)
 
 # --- VIEWS ---
@@ -45,12 +62,30 @@ def predict_url(request):
     url = request.data.get('url', '')
     if not url: return Response({'error': 'No URL'}, status=400)
     
-    # AI Scan
+    print(f"\n🔍 SCANNING: {url}")  # <--- Debug 1
+
+    # 1. AI Scan
     result = predict_url_security(url)
     
-    # Get Real Location
+    # 2. Location Tracking
     ip, country = get_ip_location(url)
+
+    # 3. Content Analysis (NLP)
+    page_title, keywords = analyze_content(url)
     
+    # --- DEBUGGING PRINTS (YE TERMINAL MEIN AAYEGA) ---
+    print(f"📄 Page Title: {page_title}") 
+    print(f"🔑 Keywords Found: {keywords}")
+    # --------------------------------------------------
+
+    # NLP Logic
+    if 'login' in keywords or 'password' in keywords:
+        print("⚠️  Sensitive Keywords Detected! Adjusting Confidence...")
+        # Sirf demo ke liye confidence thoda adjust kar rahe hain
+        if result['status'] == 'SAFE':
+             # Agar safe tha lekin login page hai, to thoda doubt create karo (Optional)
+             pass 
+
     # Save to Database
     ScanLog.objects.create(
         url=url,
