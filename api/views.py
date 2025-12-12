@@ -92,3 +92,6 @@ def search_whitelist(request):
 @api_view(['GET'])
 def fix_everything(request):
     return Response({"status": "Admin Fix Tool is Active"})
+
+def analytics_view(request):
+    return render(request, 'stats.html')
