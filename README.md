@@ -35,7 +35,11 @@ published at `/api/schema/` and `/api/docs/`.
 API errors use a stable envelope containing `error.code`, a safe human-readable
 `error.message`, structured `error.details`, and the response `request_id`.
 Administrative REST actions accept authenticated Django sessions; HTTP Basic
-authentication is disabled.
+authentication is disabled. Whitelist mutation additionally requires an active
+staff account with both the `api.add_whitelistdomain` and
+`api.change_whitelistdomain` permissions. Django's session authentication
+enforces CSRF protection for these changes. Administrative sessions expire
+when the browser closes and have an eight-hour maximum lifetime by default.
 
 API endpoints accept JSON request bodies only and return `Cache-Control:
 no-store`. Request bodies default to a 16 KiB ceiling. Analysis,
@@ -62,6 +66,12 @@ Local configuration belongs in `.env`, which Git ignores. Copy
 `.env.example` to get safe development defaults. Hosted environments must set
 their own `DJANGO_SECRET_KEY`, allowed hosts, CORS origins, database URL, and
 HTTPS security options.
+
+Use `python manage.py createsuperuser` only for the initial owner account. For
+day-to-day reviewers, create staff users and grant only the two whitelist
+permissions named above. If administration is served from a separate trusted
+HTTPS origin, list it explicitly in `DJANGO_CSRF_TRUSTED_ORIGINS`; never use a
+wildcard.
 
 Never commit `.env`, `db.sqlite3`, user scan data, or generated cache files.
 

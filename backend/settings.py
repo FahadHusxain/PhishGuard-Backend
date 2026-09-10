@@ -113,6 +113,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 12},
     },
     {
         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
@@ -186,11 +187,28 @@ CORS_ALLOW_ALL_ORIGINS = env_bool(
 )
 CORS_ALLOWED_ORIGINS = env_list("DJANGO_CORS_ALLOWED_ORIGINS")
 CORS_EXPOSE_HEADERS = ["X-Request-ID", "Retry-After"]
+CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", default=not DEBUG)
 SESSION_COOKIE_SECURE = env_bool("DJANGO_SESSION_COOKIE_SECURE", default=not DEBUG)
 CSRF_COOKIE_SECURE = env_bool("DJANGO_CSRF_COOKIE_SECURE", default=not DEBUG)
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+try:
+    SESSION_COOKIE_AGE = int(
+        os.getenv("DJANGO_ADMIN_SESSION_SECONDS", str(8 * 60 * 60))
+    )
+except ValueError as exc:
+    raise ImproperlyConfigured(
+        "DJANGO_ADMIN_SESSION_SECONDS must be a positive integer."
+    ) from exc
+if SESSION_COOKIE_AGE < 300:
+    raise ImproperlyConfigured(
+        "DJANGO_ADMIN_SESSION_SECONDS must be at least 300 seconds."
+    )
 SECURE_HSTS_SECONDS = int(os.getenv("DJANGO_SECURE_HSTS_SECONDS", "0"))
 SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool(
     "DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS",

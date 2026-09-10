@@ -12,11 +12,14 @@ from unittest.mock import patch
 from django.conf import settings
 from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.core.cache import cache
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.db import DatabaseError, IntegrityError, transaction
+from django.http import HttpRequest
+from django.middleware.csrf import get_token
 from django.test import SimpleTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -84,6 +87,19 @@ class EnvironmentSettingsTests(SimpleTestCase):
             errors = throttle_rate_configuration_check(None)
 
         self.assertEqual([error.id for error in errors], ["api.E001"])
+
+    def test_administrative_session_defaults_are_hardened(self):
+        self.assertTrue(settings.SESSION_COOKIE_HTTPONLY)
+        self.assertEqual(settings.SESSION_COOKIE_SAMESITE, "Lax")
+        self.assertEqual(settings.CSRF_COOKIE_SAMESITE, "Lax")
+        self.assertTrue(settings.SESSION_EXPIRE_AT_BROWSER_CLOSE)
+        self.assertEqual(settings.SESSION_COOKIE_AGE, 8 * 60 * 60)
+        minimum_length = next(
+            validator
+            for validator in settings.AUTH_PASSWORD_VALIDATORS
+            if validator["NAME"].endswith("MinimumLengthValidator")
+        )
+        self.assertEqual(minimum_length["OPTIONS"]["min_length"], 12)
 
 
 class OperationalEndpointTests(APITestCase):
@@ -468,12 +484,21 @@ class DomainIntegrityTests(APITestCase):
 
 
 class WhitelistAdministrationTests(APITestCase):
-    def authenticate_staff_user(self):
+    def authenticate_staff_user(self, *, grant_whitelist_permissions=True):
         user = get_user_model().objects.create_user(
             username="administrator",
             password="not-used-in-this-test",
             is_staff=True,
         )
+        if grant_whitelist_permissions:
+            permissions = Permission.objects.filter(
+                content_type__app_label="api",
+                codename__in=(
+                    "add_whitelistdomain",
+                    "change_whitelistdomain",
+                ),
+            )
+            user.user_permissions.add(*permissions)
         self.client.force_authenticate(user=user)
         return user
 
@@ -499,6 +524,71 @@ class WhitelistAdministrationTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertFalse(WhitelistDomain.objects.exists())
+
+    def test_staff_status_alone_cannot_modify_the_whitelist(self):
+        self.authenticate_staff_user(grant_whitelist_permissions=False)
+
+        response = self.client.post(
+            reverse("report_safe"),
+            {"url": "https://example.com", "reason": "Manual review"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data["error"]["code"], "permission_denied")
+        self.assertFalse(WhitelistDomain.objects.exists())
+
+    def test_non_staff_user_with_model_permissions_cannot_modify_whitelist(self):
+        user = get_user_model().objects.create_user(username="reviewer")
+        permissions = Permission.objects.filter(
+            content_type__app_label="api",
+            codename__in=("add_whitelistdomain", "change_whitelistdomain"),
+        )
+        user.user_permissions.add(*permissions)
+        self.client.force_authenticate(user=user)
+
+        response = self.client.post(
+            reverse("report_safe"),
+            {"url": "https://example.com", "reason": "Manual review"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(WhitelistDomain.objects.exists())
+
+    def test_session_authentication_requires_csrf_for_whitelist_changes(self):
+        user = self.authenticate_staff_user()
+        csrf_client = self.client_class(enforce_csrf_checks=True)
+        csrf_client.force_login(user)
+
+        response = csrf_client.post(
+            reverse("report_safe"),
+            {"url": "https://example.com", "reason": "Manual review"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(WhitelistDomain.objects.exists())
+
+    def test_authorized_session_can_submit_a_valid_csrf_token(self):
+        user = self.authenticate_staff_user()
+        csrf_client = self.client_class(enforce_csrf_checks=True)
+        csrf_client.force_login(user)
+        csrf_request = HttpRequest()
+        csrf_token = get_token(csrf_request)
+        csrf_client.cookies[settings.CSRF_COOKIE_NAME] = csrf_request.META[
+            "CSRF_COOKIE"
+        ]
+
+        response = csrf_client.post(
+            reverse("report_safe"),
+            {"url": "https://example.com", "reason": "Manual review"},
+            format="json",
+            headers={"X-CSRFToken": csrf_token},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(WhitelistDomain.objects.filter(domain="example.com").exists())
 
     def test_http_basic_authentication_is_disabled(self):
         get_user_model().objects.create_user(

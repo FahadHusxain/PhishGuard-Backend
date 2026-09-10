@@ -12,12 +12,13 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import AllowAny, IsAdminUser
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .domains import whitelist_candidates
 from .ml_logic import predict_url_security
 from .models import ScanLog, WhitelistAuditEvent, WhitelistDomain
+from .permissions import CanManageWhitelist
 from .serializers import (
     DashboardStatsSerializer,
     ErrorEnvelopeSerializer,
@@ -172,7 +173,7 @@ def predict_url(request):
     tags=["Administration"],
 )
 @api_view(["POST"])
-@permission_classes([IsAdminUser])
+@permission_classes([CanManageWhitelist])
 @throttle_classes([AdministrationRateThrottle])
 @transaction.atomic
 def report_safe(request):
