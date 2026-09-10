@@ -50,7 +50,7 @@
             // Cards Update karo
             document.getElementById('total').innerText = data.total_scans;
             document.getElementById('threats').innerText = data.phishing_count;
-            document.getElementById('safe').innerText = data.total_scans - data.phishing_count;
+            document.getElementById('safe').innerText = data.safe_count;
 
             // Chart Banao
             const ctx = document.getElementById('scanChart').getContext('2d');
@@ -61,7 +61,7 @@
                     datasets: [{
                         label: 'Scan Activity',
                         data: [
-                            data.total_scans - data.phishing_count, 
+                            data.safe_count,
                             data.phishing_count, 
                             data.whitelist_count
                         ],
