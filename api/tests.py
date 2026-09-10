@@ -1,19 +1,25 @@
 import os
+from datetime import timedelta
 from io import StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from django.conf import settings
+from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
+from django.core.management.base import CommandError
+from django.db import IntegrityError, transaction
 from django.test import SimpleTestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from backend.settings import env_bool, env_list
 
+from .admin import ScanLogAdmin
 from .ml_classifier import URLCNNClassifier
 from .ml_logic import predict_url_security
 from .models import ScanLog, WhitelistDomain
@@ -106,7 +112,7 @@ class URLApiTests(APITestCase):
             )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(ScanLog.objects.get().url, "https://example.com")
+        self.assertEqual(ScanLog.objects.get().origin, "https://example.com")
 
     def test_whitelist_matches_a_real_subdomain(self):
         WhitelistDomain.objects.create(domain="example.com", rank=1)
@@ -123,7 +129,7 @@ class URLApiTests(APITestCase):
 
     def test_dashboard_does_not_expose_full_urls_or_ip_addresses(self):
         ScanLog.objects.create(
-            url="https://example.com/reset?token=secret",
+            origin="https://example.com/reset?token=secret",
             status="SAFE",
             confidence=95,
             ip_address="8.8.8.8",
@@ -251,3 +257,65 @@ class LoadDomainsCommandTests(APITestCase):
             [(1, "example.com"), (2, "sub.example.org")],
         )
         self.assertIn("3 skipped", stdout.getvalue())
+
+
+class ScanLogDataTests(APITestCase):
+    def test_database_rejects_an_invalid_scan_status(self):
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            ScanLog.objects.create(
+                origin="https://example.com",
+                status="UNSUPPORTED",
+                confidence=50,
+            )
+
+    def test_database_rejects_confidence_outside_percentage_range(self):
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            ScanLog.objects.create(
+                origin="https://example.com",
+                status=ScanLog.Status.SAFE,
+                confidence=101,
+            )
+
+
+class ScanLogAdminTests(SimpleTestCase):
+    def test_scan_logs_cannot_be_added_or_deleted_through_admin(self):
+        model_admin = ScanLogAdmin(ScanLog, AdminSite())
+
+        self.assertFalse(model_admin.has_add_permission(None))
+        self.assertFalse(model_admin.has_delete_permission(None))
+
+
+class PurgeScanLogsCommandTests(APITestCase):
+    def setUp(self):
+        self.old_scan = ScanLog.objects.create(
+            origin="https://old.example.com",
+            status=ScanLog.Status.UNKNOWN,
+            confidence=0,
+        )
+        self.recent_scan = ScanLog.objects.create(
+            origin="https://recent.example.com",
+            status=ScanLog.Status.SAFE,
+            confidence=90,
+        )
+        ScanLog.objects.filter(pk=self.old_scan.pk).update(
+            timestamp=timezone.now() - timedelta(days=31)
+        )
+
+    @override_settings(PHISHGUARD_SCAN_RETENTION_DAYS=30)
+    def test_dry_run_reports_without_deleting_then_purge_removes_only_old_rows(self):
+        dry_run_output = StringIO()
+        call_command("purge_scan_logs", dry_run=True, stdout=dry_run_output)
+
+        self.assertEqual(ScanLog.objects.count(), 2)
+        self.assertIn("Would delete 1", dry_run_output.getvalue())
+
+        purge_output = StringIO()
+        call_command("purge_scan_logs", stdout=purge_output)
+
+        self.assertFalse(ScanLog.objects.filter(pk=self.old_scan.pk).exists())
+        self.assertTrue(ScanLog.objects.filter(pk=self.recent_scan.pk).exists())
+        self.assertIn("Deleted 1", purge_output.getvalue())
+
+    def test_retention_days_must_be_positive(self):
+        with self.assertRaisesMessage(CommandError, "at least 1"):
+            call_command("purge_scan_logs", days=0)

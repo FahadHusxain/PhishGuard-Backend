@@ -113,7 +113,7 @@ def predict_url(request):
             "country": "Whitelisted",
         }
         ScanLog.objects.create(
-            url=stored_url,
+            origin=stored_url,
             status=result["status"],
             confidence=result["confidence"],
             ip_address=None,
@@ -126,7 +126,7 @@ def predict_url(request):
 
     try:
         ScanLog.objects.create(
-            url=stored_url,
+            origin=stored_url,
             status=result["status"],
             confidence=result["confidence"],
             ip_address=ip_address,
@@ -162,11 +162,11 @@ def report_safe(request):
 
 @api_view(["GET"])
 def dashboard_stats(request):
-    recent_scan_rows = ScanLog.objects.order_by("-timestamp")[:10]
+    recent_scan_rows = ScanLog.objects.all()[:10]
     recent_logs = []
     for scan in recent_scan_rows:
         try:
-            domain = hostname_from_url(scan.url)
+            domain = hostname_from_url(scan.origin)
         except (ValueError, ValidationError):
             domain = "invalid-domain"
         recent_logs.append(
@@ -198,7 +198,7 @@ def search_whitelist(request):
     serializer.is_valid(raise_exception=True)
     query = serializer.validated_data["q"]
     results = WhitelistDomain.objects.filter(domain__icontains=query).order_by(
-        "-rank", "domain"
+        "rank", "domain"
     )[:20]
     return Response([{"domain": entry.domain, "rank": entry.rank} for entry in results])
 

@@ -33,6 +33,18 @@ HTTPS security options.
 
 Never commit `.env`, `db.sqlite3`, user scan data, or generated cache files.
 
+Scan records contain only normalized origins, not paths, queries, or fragments.
+Delete records older than the configured retention period with:
+
+```bash
+python manage.py purge_scan_logs --dry-run
+python manage.py purge_scan_logs
+```
+
+The retention period defaults to 30 days and is configured through
+`PHISHGUARD_SCAN_RETENTION_DAYS`. Schedule the command daily in hosted
+environments.
+
 ## Detection engine
 
 The URL API currently defaults to the explainable rules engine. The historical

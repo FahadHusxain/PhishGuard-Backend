@@ -159,6 +159,18 @@ PHISHGUARD_GEOLOCATION_ENABLED = env_bool(
 PHISHGUARD_GEOLOCATION_TIMEOUT_SECONDS = float(
     os.getenv("PHISHGUARD_GEOLOCATION_TIMEOUT_SECONDS", "2")
 )
+try:
+    PHISHGUARD_SCAN_RETENTION_DAYS = int(
+        os.getenv("PHISHGUARD_SCAN_RETENTION_DAYS", "30")
+    )
+except ValueError as exc:
+    raise ImproperlyConfigured(
+        "PHISHGUARD_SCAN_RETENTION_DAYS must be a positive integer."
+    ) from exc
+if PHISHGUARD_SCAN_RETENTION_DAYS < 1:
+    raise ImproperlyConfigured(
+        "PHISHGUARD_SCAN_RETENTION_DAYS must be a positive integer."
+    )
 PHISHGUARD_ML_ENABLED = env_bool("PHISHGUARD_ML_ENABLED", default=False)
 PHISHGUARD_MODEL_PATH = Path(
     os.getenv(
