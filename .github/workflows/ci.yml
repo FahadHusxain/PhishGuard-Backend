@@ -56,6 +56,7 @@ jobs:
       - name: Check hardened deployment configuration
         env:
           DATABASE_URL: "sqlite:///:memory:"
+          CACHE_URL: "redis://localhost:6379/1"
           DJANGO_DEBUG: "false"
           DJANGO_SECURE_SSL_REDIRECT: "true"
           DJANGO_SESSION_COOKIE_SECURE: "true"

@@ -9,6 +9,8 @@ ERROR_MESSAGES = {
     status.HTTP_403_FORBIDDEN: "You do not have permission to perform this action.",
     status.HTTP_404_NOT_FOUND: "The requested resource was not found.",
     status.HTTP_405_METHOD_NOT_ALLOWED: "The HTTP method is not allowed.",
+    status.HTTP_413_REQUEST_ENTITY_TOO_LARGE: "The request body is too large.",
+    status.HTTP_415_UNSUPPORTED_MEDIA_TYPE: "The request media type is unsupported.",
     status.HTTP_429_TOO_MANY_REQUESTS: "The request rate limit was exceeded.",
 }
 

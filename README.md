@@ -37,6 +37,12 @@ API errors use a stable envelope containing `error.code`, a safe human-readable
 Administrative REST actions accept authenticated Django sessions; HTTP Basic
 authentication is disabled.
 
+API endpoints accept JSON request bodies only and return `Cache-Control:
+no-store`. Request bodies default to a 16 KiB ceiling. Analysis,
+administration, and read endpoints have separate configurable rate budgets.
+Set `PHISHGUARD_NUM_PROXIES` to the exact number of trusted reverse proxies so
+client addresses cannot be forged through `X-Forwarded-For`.
+
 Manual whitelist mutations through the REST endpoint create read-only audit
 records containing the staff actor, reason, rank transition, request ID, and
 timestamp. Repeated requests for an already-trusted domain do not create false
@@ -58,6 +64,12 @@ their own `DJANGO_SECRET_KEY`, allowed hosts, CORS origins, database URL, and
 HTTPS security options.
 
 Never commit `.env`, `db.sqlite3`, user scan data, or generated cache files.
+
+Development uses an in-process cache. Multi-worker or multi-replica deployments
+must set `CACHE_URL` to a shared Redis instance so application throttles share
+state. Application throttling is a fairness and resource-protection control,
+not a DDoS firewall; production should also enforce limits at its edge proxy or
+hosting platform.
 
 Scan records contain only normalized origins, not paths, queries, or fragments.
 Delete records older than the configured retention period with:

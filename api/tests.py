@@ -12,6 +12,7 @@ from unittest.mock import patch
 from django.conf import settings
 from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.management import call_command
 from django.core.management.base import CommandError
@@ -22,11 +23,13 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from backend.health import _cache_is_ready
 from backend.logging import JSONFormatter, RequestContextFilter
 from backend.request_context import current_request_id
 from backend.settings import env_bool, env_list
 
 from .admin import ScanLogAdmin, WhitelistAuditEventAdmin
+from .checks import shared_throttle_cache_check, throttle_rate_configuration_check
 from .domains import (
     normalize_hostname,
     normalize_whitelist_domain,
@@ -35,6 +38,11 @@ from .domains import (
 from .ml_classifier import URLCNNClassifier
 from .ml_logic import predict_url_security
 from .models import ScanLog, WhitelistAuditEvent, WhitelistDomain
+from .throttles import (
+    AdministrationRateThrottle,
+    AnalysisRateThrottle,
+    ReadRateThrottle,
+)
 from .views import get_ip_location
 
 
@@ -61,8 +69,27 @@ class EnvironmentSettingsTests(SimpleTestCase):
                 ["localhost", "127.0.0.1", "example.com"],
             )
 
+    @override_settings(DEBUG=False, CACHE_URL=None)
+    def test_deployment_check_warns_without_a_shared_throttle_cache(self):
+        warnings = shared_throttle_cache_check(None)
+
+        self.assertEqual([warning.id for warning in warnings], ["api.W001"])
+
+    @override_settings(DEBUG=False, CACHE_URL="redis://cache:6379/1")
+    def test_deployment_check_accepts_a_shared_throttle_cache(self):
+        self.assertEqual(shared_throttle_cache_check(None), [])
+
+    def test_system_check_rejects_an_invalid_endpoint_rate(self):
+        with patch.object(AnalysisRateThrottle, "rate", "invalid", create=True):
+            errors = throttle_rate_configuration_check(None)
+
+        self.assertEqual([error.id for error in errors], ["api.E001"])
+
 
 class OperationalEndpointTests(APITestCase):
+    def setUp(self):
+        cache.clear()
+
     def test_liveness_does_not_depend_on_the_database(self):
         response = self.client.get(reverse("health_live"))
 
@@ -82,6 +109,17 @@ class OperationalEndpointTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
         self.assertEqual(response.json(), {"status": "unavailable"})
+
+    def test_readiness_reports_shared_cache_failure(self):
+        with patch("backend.health._cache_is_ready", return_value=False):
+            response = self.client.get(reverse("health_ready"))
+
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertEqual(response.json(), {"status": "unavailable"})
+
+    @override_settings(CACHE_URL="redis://configured-for-test")
+    def test_shared_cache_probe_round_trips_a_value(self):
+        self.assertTrue(_cache_is_ready())
 
     def test_valid_request_id_is_preserved(self):
         request_id = "frontend-request_123"
@@ -175,6 +213,86 @@ class APIContractTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertContains(response, "swagger-ui")
+
+
+class AbuseProtectionTests(APITestCase):
+    def setUp(self):
+        cache.clear()
+
+    def test_analysis_endpoint_enforces_its_own_rate_budget(self):
+        with (
+            patch.object(AnalysisRateThrottle, "rate", "2/min", create=True),
+            patch(
+                "api.views.predict_url_security",
+                return_value={
+                    "status": "UNKNOWN",
+                    "confidence": 0,
+                    "message": "Inconclusive",
+                },
+            ),
+            patch("api.views.get_ip_location", return_value=(None, "Unknown")),
+        ):
+            responses = [
+                self.client.post(
+                    reverse("predict"),
+                    {"url": f"https://example-{index}.com"},
+                    format="json",
+                )
+                for index in range(3)
+            ]
+
+        self.assertEqual(
+            [response.status_code for response in responses], [200, 200, 429]
+        )
+        self.assertEqual(responses[-1].data["error"]["code"], "throttled")
+        self.assertIn("Retry-After", responses[-1])
+        self.assertEqual(ScanLog.objects.count(), 2)
+
+    def test_endpoint_groups_have_distinct_throttle_classes(self):
+        from .views import dashboard_stats, predict_url, report_safe, search_whitelist
+
+        self.assertEqual(predict_url.cls.throttle_classes, [AnalysisRateThrottle])
+        self.assertEqual(
+            report_safe.cls.throttle_classes,
+            [AdministrationRateThrottle],
+        )
+        self.assertEqual(dashboard_stats.cls.throttle_classes, [ReadRateThrottle])
+        self.assertEqual(search_whitelist.cls.throttle_classes, [ReadRateThrottle])
+
+    def test_oversized_request_is_rejected_before_parsing_or_logging(self):
+        response = self.client.post(
+            reverse("predict"),
+            {"url": f"https://example.com/{'a' * 20_000}"},
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+        )
+        self.assertEqual(response.json()["error"]["code"], "request_too_large")
+        self.assertEqual(
+            response.json()["error"]["details"]["max_bytes"],
+            settings.DATA_UPLOAD_MAX_MEMORY_SIZE,
+        )
+        self.assertEqual(ScanLog.objects.count(), 0)
+
+    def test_non_json_api_body_is_rejected(self):
+        response = self.client.generic(
+            "POST",
+            reverse("predict"),
+            data="url=https://example.com",
+            content_type="text/plain",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
+        self.assertEqual(response.data["error"]["code"], "unsupported_media_type")
+
+    def test_api_responses_are_never_stored_by_intermediaries(self):
+        response = self.client.get(reverse("dashboard_stats"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response["Cache-Control"], "no-store")
 
 
 class URLApiTests(APITestCase):

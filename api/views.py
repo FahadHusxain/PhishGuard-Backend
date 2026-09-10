@@ -10,7 +10,7 @@ from django.db import DatabaseError, transaction
 from django.shortcuts import render
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
@@ -29,6 +29,11 @@ from .serializers import (
     WhitelistSubmissionSerializer,
     hostname_from_url,
     redact_url_for_storage,
+)
+from .throttles import (
+    AdministrationRateThrottle,
+    AnalysisRateThrottle,
+    ReadRateThrottle,
 )
 
 logger = logging.getLogger(__name__)
@@ -99,11 +104,18 @@ def _trusted_domain(hostname: str) -> WhitelistDomain | None:
     operation_id="analyze_url",
     summary="Analyze a URL for phishing risk",
     request=URLSubmissionSerializer,
-    responses={200: PredictionResponseSerializer, 400: ErrorEnvelopeSerializer},
+    responses={
+        200: PredictionResponseSerializer,
+        400: ErrorEnvelopeSerializer,
+        413: ErrorEnvelopeSerializer,
+        415: ErrorEnvelopeSerializer,
+        429: ErrorEnvelopeSerializer,
+    },
     tags=["Analysis"],
 )
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@throttle_classes([AnalysisRateThrottle])
 def predict_url(request):
     serializer = URLSubmissionSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -153,11 +165,15 @@ def predict_url(request):
         201: ReportSafeResponseSerializer,
         400: ErrorEnvelopeSerializer,
         403: ErrorEnvelopeSerializer,
+        413: ErrorEnvelopeSerializer,
+        415: ErrorEnvelopeSerializer,
+        429: ErrorEnvelopeSerializer,
     },
     tags=["Administration"],
 )
 @api_view(["POST"])
 @permission_classes([IsAdminUser])
+@throttle_classes([AdministrationRateThrottle])
 @transaction.atomic
 def report_safe(request):
     serializer = WhitelistSubmissionSerializer(data=request.data)
@@ -199,11 +215,12 @@ def report_safe(request):
 @extend_schema(
     operation_id="dashboard_statistics",
     summary="Get aggregate scan statistics",
-    responses={200: DashboardStatsSerializer},
+    responses={200: DashboardStatsSerializer, 429: ErrorEnvelopeSerializer},
     tags=["Statistics"],
 )
 @api_view(["GET"])
 @permission_classes([AllowAny])
+@throttle_classes([ReadRateThrottle])
 def dashboard_stats(request):
     recent_scan_rows = ScanLog.objects.all()[:10]
     recent_logs = []
@@ -242,11 +259,13 @@ def dashboard_stats(request):
     responses={
         200: WhitelistResultSerializer(many=True),
         400: ErrorEnvelopeSerializer,
+        429: ErrorEnvelopeSerializer,
     },
     tags=["Trusted domains"],
 )
 @api_view(["GET"])
 @permission_classes([AllowAny])
+@throttle_classes([ReadRateThrottle])
 def search_whitelist(request):
     serializer = WhitelistSearchSerializer(data=request.query_params)
     serializer.is_valid(raise_exception=True)

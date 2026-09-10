@@ -5,6 +5,10 @@ import re
 import time
 import uuid
 
+from django.conf import settings
+from django.core.exceptions import RequestDataTooBig
+from django.http import JsonResponse
+
 from backend.request_context import current_request_id
 
 request_logger = logging.getLogger("phishguard.requests")
@@ -44,3 +48,49 @@ class RequestIDMiddleware:
             return response
         finally:
             current_request_id.reset(context_token)
+
+
+class APIRequestLimitsMiddleware:
+    """Reject oversized API requests early and disable sensitive response caching."""
+
+    _BODY_METHODS = frozenset({"POST", "PUT", "PATCH"})
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.path.startswith("/api/") and request.method in self._BODY_METHODS:
+            content_length = request.META.get("CONTENT_LENGTH", "")
+            try:
+                declared_size = int(content_length) if content_length else 0
+            except ValueError:
+                declared_size = settings.DATA_UPLOAD_MAX_MEMORY_SIZE + 1
+            if declared_size > settings.DATA_UPLOAD_MAX_MEMORY_SIZE:
+                return self._too_large_response(request)
+
+        try:
+            response = self.get_response(request)
+        except RequestDataTooBig:
+            response = self._too_large_response(request)
+
+        if request.path.startswith("/api/"):
+            response["Cache-Control"] = "no-store"
+        return response
+
+    @staticmethod
+    def _too_large_response(request):
+        response = JsonResponse(
+            {
+                "error": {
+                    "code": "request_too_large",
+                    "message": "The request body is too large.",
+                    "details": {
+                        "max_bytes": settings.DATA_UPLOAD_MAX_MEMORY_SIZE,
+                    },
+                },
+                "request_id": getattr(request, "request_id", None),
+            },
+            status=413,
+        )
+        response["Cache-Control"] = "no-store"
+        return response

@@ -56,6 +56,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "api.middleware.RequestIDMiddleware",
+    "api.middleware.APIRequestLimitsMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -139,11 +140,52 @@ STORAGES = {
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+try:
+    DATA_UPLOAD_MAX_MEMORY_SIZE = int(
+        os.getenv("PHISHGUARD_MAX_REQUEST_BYTES", str(16 * 1024))
+    )
+    DATA_UPLOAD_MAX_NUMBER_FIELDS = int(
+        os.getenv("PHISHGUARD_MAX_REQUEST_FIELDS", "20")
+    )
+    PHISHGUARD_NUM_PROXIES = int(os.getenv("PHISHGUARD_NUM_PROXIES", "0"))
+except ValueError as exc:
+    raise ImproperlyConfigured(
+        "Request limits and PHISHGUARD_NUM_PROXIES must be integers."
+    ) from exc
+if DATA_UPLOAD_MAX_MEMORY_SIZE < 1024 or DATA_UPLOAD_MAX_NUMBER_FIELDS < 1:
+    raise ImproperlyConfigured("Request size and field limits must be positive.")
+if PHISHGUARD_NUM_PROXIES < 0:
+    raise ImproperlyConfigured("PHISHGUARD_NUM_PROXIES cannot be negative.")
+
+CACHE_URL = os.getenv("CACHE_URL")
+if CACHE_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": CACHE_URL,
+            "TIMEOUT": 300,
+            "OPTIONS": {
+                "socket_connect_timeout": 2,
+                "socket_timeout": 2,
+            },
+            "KEY_PREFIX": "phishguard",
+        }
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "phishguard-development",
+            "TIMEOUT": 300,
+        }
+    }
+
 CORS_ALLOW_ALL_ORIGINS = env_bool(
     "DJANGO_CORS_ALLOW_ALL_ORIGINS",
     default=DEBUG,
 )
 CORS_ALLOWED_ORIGINS = env_list("DJANGO_CORS_ALLOWED_ORIGINS")
+CORS_EXPOSE_HEADERS = ["X-Request-ID", "Retry-After"]
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", default=not DEBUG)
@@ -206,6 +248,9 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.AllowAny",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_PARSER_CLASSES": [
+        "rest_framework.parsers.JSONParser",
+    ],
     "EXCEPTION_HANDLER": "backend.exceptions.api_exception_handler",
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
@@ -214,7 +259,11 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "anon": os.getenv("PHISHGUARD_ANON_RATE", "60/min"),
         "user": os.getenv("PHISHGUARD_USER_RATE", "300/min"),
+        "analysis": os.getenv("PHISHGUARD_ANALYSIS_RATE", "30/min"),
+        "administration": os.getenv("PHISHGUARD_ADMIN_RATE", "10/min"),
+        "read": os.getenv("PHISHGUARD_READ_RATE", "120/min"),
     },
+    "NUM_PROXIES": PHISHGUARD_NUM_PROXIES,
 }
 
 SPECTACULAR_SETTINGS = {
