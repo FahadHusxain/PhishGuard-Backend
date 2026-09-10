@@ -22,6 +22,7 @@ media/
 ml_models/tokenizer.pickle
 
 # Test, coverage, and type-checking caches
+.ml-data/
 .coverage
 .coverage.*
 htmlcov/

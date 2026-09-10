@@ -46,3 +46,7 @@ Before claiming production accuracy, the project needs a versioned and legally
 usable dataset, leakage-resistant train/validation/test splits, precision,
 recall, F1, ROC-AUC, PR-AUC, calibration, false-positive analysis, and tests
 against obfuscated and internationalized URLs.
+
+A reproducible replacement experiment now exists separately; see
+`LEXICAL_MODEL_CARD.md`. Its candidate artifact remains disabled until it passes
+the documented promotion gate.

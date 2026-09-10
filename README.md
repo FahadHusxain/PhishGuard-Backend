@@ -99,6 +99,10 @@ disabled because the repository contains no training/evaluation provenance and
 smoke evaluation shows unacceptable false positives. See
 `ml_models/MODEL_CARD.md` before changing `PHISHGUARD_ML_ENABLED`.
 
+The reproducible replacement experiment, dataset manifest, grouped evaluation,
+and non-promotion decision are documented in `ml_pipeline/README.md` and
+`ml_models/LEXICAL_MODEL_CARD.md`.
+
 Rules evaluate independent structural signals such as IP-address hosts,
 credential-lure tokens, nested redirect URLs, unusual subdomain depth, encoded
 content, internationalized hostnames, and nonstandard ports. Keywords are

@@ -12,10 +12,11 @@ select = ["B", "DJ", "E4", "E7", "E9", "F", "FURB", "I", "RUF", "S", "SIM", "UP"
 
 [tool.coverage.run]
 branch = true
-source = ["api", "backend"]
+source = ["api", "backend", "ml_pipeline"]
 omit = [
     "api/migrations/*",
     "api/tests.py",
+    "api/tests_ml_pipeline.py",
     "backend/asgi.py",
     "backend/wsgi.py",
 ]

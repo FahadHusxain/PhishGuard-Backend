@@ -3,6 +3,7 @@
 .env
 .env.*
 .venv
+.ml-data
 .coverage
 .coverage.*
 .mypy_cache

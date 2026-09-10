@@ -1,0 +1,89 @@
+{
+  "pipeline_version": 1,
+  "candidate_status": "NOT_PROMOTED",
+  "candidate_reason": "The metric gate did not pass, and a grouped single-dataset evaluation cannot establish temporal or cross-source generalization.",
+  "dataset_archive_sha256": "0a639fd03aea6308c5b1c10c92aa23c2ce1505447a9137271865cd0badc9a59a",
+  "model_sha256": "1cfecd5dfa9e4b327f0fd305c324722c83377350eefe7cb066b04463c619a1c9",
+  "source_rows": 235795,
+  "unique_urls": 235370,
+  "duplicate_rows_removed": 425,
+  "conflicting_urls_removed": 0,
+  "split_strategy": "SHA-256 registrable-domain groups: 70/15/15",
+  "random_seed": 20260911,
+  "training_environment": {
+    "python": "3.13.15",
+    "numpy": "2.5.3",
+    "scikit_learn": "1.9.1"
+  },
+  "features": {
+    "type": "character hashing",
+    "ngram_range": [
+      3,
+      5
+    ],
+    "feature_count": 262144
+  },
+  "splits": {
+    "train": {
+      "rows": 164380,
+      "groups": 138460,
+      "legitimate": 94422,
+      "phishing": 69958
+    },
+    "calibration": {
+      "rows": 36744,
+      "groups": 29566,
+      "legitimate": 20107,
+      "phishing": 16637
+    },
+    "test": {
+      "rows": 34246,
+      "groups": 29683,
+      "legitimate": 20321,
+      "phishing": 13925
+    }
+  },
+  "promotion_gate": {
+    "precision_at_least": 0.98,
+    "recall_at_least": 0.95,
+    "pr_auc_at_least": 0.98,
+    "false_positive_rate_at_most": 0.02,
+    "requires_independent_or_temporal_evaluation": true,
+    "metric_gate_passed": false,
+    "independent_or_temporal_evaluation_passed": false
+  },
+  "test_metrics": {
+    "threshold": 0.04970069,
+    "precision": 0.976726,
+    "recall": 0.994542,
+    "f1": 0.985554,
+    "roc_auc": 0.998105,
+    "pr_auc": 0.998367,
+    "brier_score": 0.002966,
+    "log_loss": 0.01804,
+    "false_positive_rate": 0.016239,
+    "confusion_matrix": {
+      "true_negative": 19991,
+      "false_positive": 330,
+      "false_negative": 76,
+      "true_positive": 13849
+    }
+  },
+  "test_metrics_at_default_threshold": {
+    "threshold": 0.5,
+    "precision": 0.999711,
+    "recall": 0.99246,
+    "f1": 0.996072,
+    "roc_auc": 0.998105,
+    "pr_auc": 0.998367,
+    "brier_score": 0.002966,
+    "log_loss": 0.01804,
+    "false_positive_rate": 0.000197,
+    "confusion_matrix": {
+      "true_negative": 20317,
+      "false_positive": 4,
+      "false_negative": 105,
+      "true_positive": 13820
+    }
+  }
+}
