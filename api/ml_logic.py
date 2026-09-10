@@ -9,7 +9,6 @@ from django.conf import settings
 
 from .ml_classifier import ModelLoadError, URLCNNClassifier
 
-
 logger = logging.getLogger(__name__)
 
 SUSPICIOUS_KEYWORDS = {
@@ -32,9 +31,7 @@ def _rule_assessment(url: str) -> tuple[float, list[str]]:
     score = 0.0
     reasons = []
 
-    has_sensitive_keyword = any(
-        keyword in url_lower for keyword in SUSPICIOUS_KEYWORDS
-    )
+    has_sensitive_keyword = any(keyword in url_lower for keyword in SUSPICIOUS_KEYWORDS)
     if parsed.scheme.lower() == "http" and has_sensitive_keyword:
         score += 40
         reasons.append("Sensitive page is served over unencrypted HTTP")

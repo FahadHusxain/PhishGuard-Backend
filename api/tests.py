@@ -1,14 +1,19 @@
 import os
+from io import StringIO
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from django.test import SimpleTestCase, override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from backend.settings import env_bool, env_list
+
 from .ml_classifier import URLCNNClassifier
 from .ml_logic import predict_url_security
 from .models import ScanLog, WhitelistDomain
@@ -22,9 +27,11 @@ class EnvironmentSettingsTests(SimpleTestCase):
 
     def test_env_bool_accepts_conventional_true_values(self):
         for value in ("1", "true", "TRUE", "yes", "on"):
-            with self.subTest(value=value):
-                with patch.dict(os.environ, {"BOOLEAN_SETTING": value}):
-                    self.assertTrue(env_bool("BOOLEAN_SETTING"))
+            with (
+                self.subTest(value=value),
+                patch.dict(os.environ, {"BOOLEAN_SETTING": value}),
+            ):
+                self.assertTrue(env_bool("BOOLEAN_SETTING"))
 
     def test_env_list_removes_empty_items_and_whitespace(self):
         with patch.dict(
@@ -216,3 +223,31 @@ class MLClassifierTests(SimpleTestCase):
         self.assertEqual(result["engine"], "rules-only")
         self.assertEqual(result["status"], "UNKNOWN")
         self.assertEqual(result["confidence"], 0)
+
+
+class LoadDomainsCommandTests(APITestCase):
+    def test_loader_preserves_rank_and_skips_malformed_rows(self):
+        with TemporaryDirectory() as temporary_directory:
+            csv_path = Path(temporary_directory) / "domains.csv"
+            csv_path.write_text(
+                "1,Example.COM.\n2,sub.example.org\ninvalid,row\n3\n0,zero.test\n",
+                encoding="utf-8",
+            )
+            stdout = StringIO()
+            stderr = StringIO()
+
+            call_command(
+                "load_domains",
+                file=csv_path,
+                batch_size=1,
+                stdout=stdout,
+                stderr=stderr,
+            )
+
+        self.assertEqual(
+            list(
+                WhitelistDomain.objects.order_by("rank").values_list("rank", "domain")
+            ),
+            [(1, "example.com"), (2, "sub.example.org")],
+        )
+        self.assertIn("3 skipped", stdout.getvalue())

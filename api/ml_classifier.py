@@ -14,9 +14,7 @@ class ModelLoadError(RuntimeError):
 class URLCNNClassifier:
     """Run the trained Keras CNN with NumPy instead of a TensorFlow runtime."""
 
-    _EMBEDDING_PATH = (
-        "model_weights/embedding_1/sequential_1/embedding_1/embeddings"
-    )
+    _EMBEDDING_PATH = "model_weights/embedding_1/sequential_1/embedding_1/embeddings"
     _CONV_KERNEL_PATH = "model_weights/conv1d_1/sequential_1/conv1d_1/kernel"
     _CONV_BIAS_PATH = "model_weights/conv1d_1/sequential_1/conv1d_1/bias"
     _DENSE_KERNEL_PATH = "model_weights/dense_1/sequential_1/dense_1/kernel"
@@ -90,12 +88,18 @@ class URLCNNClassifier:
         if self.max_length < self.conv_kernel.shape[0]:
             raise ModelLoadError("The tokenizer sequence length is too short.")
         if max(self.char_index.values(), default=0) >= self.embedding.shape[0]:
-            raise ModelLoadError("The tokenizer vocabulary exceeds the embedding table.")
+            raise ModelLoadError(
+                "The tokenizer vocabulary exceeds the embedding table."
+            )
 
     def _encode(self, url: str) -> np.ndarray:
         text = url.replace("https://", "").replace("http://", "").replace("www.", "")
         text = text.lower() if self.lower else text
-        sequence = [self.char_index[character] for character in text if character in self.char_index]
+        sequence = [
+            self.char_index[character]
+            for character in text
+            if character in self.char_index
+        ]
         sequence = sequence[: self.max_length]
         encoded = np.zeros(self.max_length, dtype=np.int64)
         if sequence:

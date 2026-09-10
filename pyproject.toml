@@ -1,0 +1,26 @@
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+extend-exclude = ["api/migrations"]
+
+[tool.ruff.lint]
+select = ["B", "DJ", "E4", "E7", "E9", "F", "FURB", "I", "RUF", "S", "SIM", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+"api/tests.py" = ["S105", "S106"]
+"backend/settings.py" = ["S105"]
+
+[tool.coverage.run]
+branch = true
+source = ["api", "backend"]
+omit = [
+    "api/migrations/*",
+    "api/tests.py",
+    "backend/asgi.py",
+    "backend/wsgi.py",
+]
+
+[tool.coverage.report]
+fail_under = 75
+show_missing = true
+skip_covered = true

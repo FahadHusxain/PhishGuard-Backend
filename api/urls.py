@@ -8,7 +8,6 @@ from .views import (
     search_whitelist,
 )
 
-
 urlpatterns = [
     path("predict/", predict_url, name="predict"),
     path("stats/", dashboard_stats, name="dashboard_stats"),

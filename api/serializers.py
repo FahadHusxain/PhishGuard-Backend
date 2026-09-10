@@ -69,7 +69,9 @@ class URLSubmissionSerializer(serializers.Serializer):
         try:
             parsed = urlsplit(value)
             if parsed.scheme.lower() not in {"http", "https"}:
-                raise serializers.ValidationError("Only HTTP and HTTPS URLs are accepted.")
+                raise serializers.ValidationError(
+                    "Only HTTP and HTTPS URLs are accepted."
+                )
             if parsed.username is not None or parsed.password is not None:
                 raise serializers.ValidationError(
                     "URLs containing embedded credentials are not accepted."

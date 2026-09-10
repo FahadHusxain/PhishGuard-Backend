@@ -10,7 +10,7 @@ The supported development baseline is Python 3.13.15 and Django 5.2.17 LTS.
 ```bash
 python -m venv .venv
 source .venv/Scripts/activate
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 cp .env.example .env
 python manage.py migrate
 python manage.py runserver
@@ -48,4 +48,8 @@ python -m pip check
 python manage.py check
 python manage.py makemigrations --check --dry-run
 python manage.py test
+ruff check .
+ruff format --check .
+coverage run manage.py test
+coverage report
 ```

@@ -23,7 +23,6 @@ from .serializers import (
     redact_url_for_storage,
 )
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -48,7 +47,7 @@ def _public_ip_for_hostname(hostname: str) -> str | None:
             return None
         parsed_addresses.append(parsed_address)
 
-    return str(sorted(parsed_addresses, key=lambda item: (item.version, int(item)))[0])
+    return str(min(parsed_addresses, key=lambda item: (item.version, int(item))))
 
 
 def get_ip_location(url: str) -> tuple[str | None, str]:
@@ -201,9 +200,7 @@ def search_whitelist(request):
     results = WhitelistDomain.objects.filter(domain__icontains=query).order_by(
         "-rank", "domain"
     )[:20]
-    return Response(
-        [{"domain": entry.domain, "rank": entry.rank} for entry in results]
-    )
+    return Response([{"domain": entry.domain, "rank": entry.rank} for entry in results])
 
 
 def analytics_view(request):

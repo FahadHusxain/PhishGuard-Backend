@@ -7,7 +7,6 @@ import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
@@ -174,9 +173,7 @@ PHISHGUARD_TOKENIZER_PATH = Path(
     )
 )
 PHISHGUARD_ML_WEIGHT = float(os.getenv("PHISHGUARD_ML_WEIGHT", "0.6"))
-PHISHGUARD_PHISHING_THRESHOLD = float(
-    os.getenv("PHISHGUARD_PHISHING_THRESHOLD", "50")
-)
+PHISHGUARD_PHISHING_THRESHOLD = float(os.getenv("PHISHGUARD_PHISHING_THRESHOLD", "50"))
 
 if not 0.0 <= PHISHGUARD_ML_WEIGHT <= 1.0:
     raise ImproperlyConfigured("PHISHGUARD_ML_WEIGHT must be between 0 and 1.")
