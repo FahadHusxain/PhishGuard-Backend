@@ -50,9 +50,11 @@ jobs:
         run: |
           python manage.py check
           python manage.py makemigrations --check --dry-run
+          python gunicorn.conf.py
 
       - name: Check hardened deployment configuration
         env:
+          DATABASE_URL: "sqlite:///:memory:"
           DJANGO_DEBUG: "false"
           DJANGO_SECURE_SSL_REDIRECT: "true"
           DJANGO_SESSION_COOKIE_SECURE: "true"
@@ -69,3 +71,19 @@ jobs:
 
       - name: Audit installed dependencies
         run: python -m pip_audit --local --strict
+
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Build production image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          tags: phishguard-backend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

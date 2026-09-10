@@ -49,6 +49,26 @@ The retention period defaults to 30 days and is configured through
 `PHISHGUARD_SCAN_RETENTION_DAYS`. Schedule the command daily in hosted
 environments.
 
+## Production deployment
+
+Production requires PostgreSQL through `DATABASE_URL`; the SQLite fallback is
+development-only. Apply migrations as a release step, then start Gunicorn:
+
+```bash
+python manage.py migrate --noinput
+gunicorn --config gunicorn.conf.py backend.wsgi:application
+```
+
+A non-root production image is defined in `Dockerfile`:
+
+```bash
+docker build -t phishguard-backend .
+docker run --rm -p 8000:8000 --env-file .env phishguard-backend
+```
+
+Set `WEB_CONCURRENCY`, `GUNICORN_THREADS`, and `PORT` to tune the server for the
+hosting environment. Never bake a production `.env` file into the image.
+
 ## Detection engine
 
 The URL API currently defaults to the explainable rules engine. The historical
