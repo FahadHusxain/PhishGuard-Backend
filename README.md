@@ -37,6 +37,11 @@ API errors use a stable envelope containing `error.code`, a safe human-readable
 Administrative REST actions accept authenticated Django sessions; HTTP Basic
 authentication is disabled.
 
+Manual whitelist mutations through the REST endpoint create read-only audit
+records containing the staff actor, reason, rank transition, request ID, and
+timestamp. Repeated requests for an already-trusted domain do not create false
+change events.
+
 ## Configuration
 
 Local configuration belongs in `.env`, which Git ignores. Copy

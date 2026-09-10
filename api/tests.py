@@ -14,7 +14,7 @@ from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.db import IntegrityError, transaction
+from django.db import DatabaseError, IntegrityError, transaction
 from django.test import SimpleTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -25,10 +25,10 @@ from backend.logging import JSONFormatter, RequestContextFilter
 from backend.request_context import current_request_id
 from backend.settings import env_bool, env_list
 
-from .admin import ScanLogAdmin
+from .admin import ScanLogAdmin, WhitelistAuditEventAdmin
 from .ml_classifier import URLCNNClassifier
 from .ml_logic import predict_url_security
-from .models import ScanLog, WhitelistDomain
+from .models import ScanLog, WhitelistAuditEvent, WhitelistDomain
 from .views import get_ip_location
 
 
@@ -153,6 +153,16 @@ class APIContractTests(APITestCase):
         self.assertIn("/api/v1/predict/", schema["paths"])
         self.assertNotIn("/api/predict/", schema["paths"])
         self.assertEqual(schema["info"]["version"], "1.0.0")
+        predict_request = schema["paths"]["/api/v1/predict/"]["post"]["requestBody"]
+        report_request = schema["paths"]["/api/v1/report-safe/"]["post"]["requestBody"]
+        self.assertEqual(
+            predict_request["content"]["application/json"]["schema"]["$ref"],
+            "#/components/schemas/URLSubmissionRequest",
+        )
+        self.assertEqual(
+            report_request["content"]["application/json"]["schema"]["$ref"],
+            "#/components/schemas/WhitelistSubmissionRequest",
+        )
 
     def test_interactive_api_documentation_is_available(self):
         response = self.client.get(reverse("api_docs"))
@@ -262,6 +272,15 @@ class URLApiTests(APITestCase):
 
 
 class WhitelistAdministrationTests(APITestCase):
+    def authenticate_staff_user(self):
+        user = get_user_model().objects.create_user(
+            username="administrator",
+            password="not-used-in-this-test",
+            is_staff=True,
+        )
+        self.client.force_authenticate(user=user)
+        return user
+
     def test_anonymous_user_cannot_add_whitelist_entries(self):
         response = self.client.post(
             reverse("report_safe"),
@@ -292,16 +311,14 @@ class WhitelistAdministrationTests(APITestCase):
         self.assertFalse(WhitelistDomain.objects.exists())
 
     def test_staff_user_can_add_a_normalized_whitelist_entry(self):
-        user = get_user_model().objects.create_user(
-            username="administrator",
-            password="not-used-in-this-test",
-            is_staff=True,
-        )
-        self.client.force_authenticate(user=user)
+        user = self.authenticate_staff_user()
 
         response = self.client.post(
             reverse("report_safe"),
-            {"url": "https://EXAMPLE.com./login"},
+            {
+                "url": "https://EXAMPLE.com./login",
+                "reason": "Verified institutional domain",
+            },
             format="json",
         )
 
@@ -309,6 +326,77 @@ class WhitelistAdministrationTests(APITestCase):
         self.assertTrue(
             WhitelistDomain.objects.filter(domain="example.com", rank=50).exists()
         )
+        audit_event = WhitelistAuditEvent.objects.get()
+        self.assertEqual(audit_event.action, WhitelistAuditEvent.Action.ADDED)
+        self.assertEqual(audit_event.actor, user)
+        self.assertEqual(audit_event.actor_username, "administrator")
+        self.assertEqual(audit_event.domain, "example.com")
+        self.assertIsNone(audit_event.previous_rank)
+        self.assertEqual(audit_event.new_rank, 50)
+        self.assertEqual(audit_event.reason, "Verified institutional domain")
+        self.assertEqual(audit_event.request_id, response["X-Request-ID"])
+
+        user.delete()
+        audit_event.refresh_from_db()
+        self.assertIsNone(audit_event.actor)
+        self.assertEqual(audit_event.actor_username, "administrator")
+
+    def test_promoting_an_untrusted_entry_records_the_rank_transition(self):
+        self.authenticate_staff_user()
+        WhitelistDomain.objects.create(domain="example.com", rank=0)
+
+        response = self.client.post(
+            reverse("report_safe"),
+            {"url": "https://example.com", "reason": "False positive review"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        audit_event = WhitelistAuditEvent.objects.get()
+        self.assertEqual(audit_event.action, WhitelistAuditEvent.Action.PROMOTED)
+        self.assertEqual(audit_event.previous_rank, 0)
+        self.assertEqual(audit_event.new_rank, 50)
+
+    def test_repeating_an_existing_trusted_domain_does_not_fake_a_change(self):
+        self.authenticate_staff_user()
+        WhitelistDomain.objects.create(domain="example.com", rank=25)
+
+        response = self.client.post(
+            reverse("report_safe"),
+            {"url": "https://example.com"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(WhitelistAuditEvent.objects.exists())
+
+    def test_whitelist_mutation_rolls_back_if_audit_creation_fails(self):
+        self.authenticate_staff_user()
+
+        with (
+            self.assertLogs("django.request", level="ERROR"),
+            patch(
+                "api.views.WhitelistAuditEvent.objects.create",
+                side_effect=DatabaseError("audit unavailable"),
+            ),
+            self.assertRaises(DatabaseError),
+        ):
+            self.client.post(
+                reverse("report_safe"),
+                {"url": "https://example.com"},
+                format="json",
+            )
+
+        self.assertFalse(WhitelistDomain.objects.exists())
+
+
+class WhitelistAuditAdminTests(SimpleTestCase):
+    def test_audit_events_cannot_be_added_or_deleted_through_admin(self):
+        model_admin = WhitelistAuditEventAdmin(WhitelistAuditEvent, AdminSite())
+
+        self.assertFalse(model_admin.has_add_permission(None))
+        self.assertFalse(model_admin.has_change_permission(None))
+        self.assertFalse(model_admin.has_delete_permission(None))
 
 
 class GeolocationSafetyTests(SimpleTestCase):

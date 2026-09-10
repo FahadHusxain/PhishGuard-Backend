@@ -6,7 +6,7 @@ import socket
 
 import requests
 from django.conf import settings
-from django.db import DatabaseError
+from django.db import DatabaseError, transaction
 from django.shortcuts import render
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -16,7 +16,7 @@ from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 
 from .ml_logic import predict_url_security
-from .models import ScanLog, WhitelistDomain
+from .models import ScanLog, WhitelistAuditEvent, WhitelistDomain
 from .serializers import (
     DashboardStatsSerializer,
     ErrorEnvelopeSerializer,
@@ -25,6 +25,7 @@ from .serializers import (
     URLSubmissionSerializer,
     WhitelistResultSerializer,
     WhitelistSearchSerializer,
+    WhitelistSubmissionSerializer,
     hostname_from_url,
     redact_url_for_storage,
 )
@@ -155,7 +156,7 @@ def predict_url(request):
 @extend_schema(
     operation_id="add_trusted_domain",
     summary="Add a domain to the trusted whitelist",
-    request=URLSubmissionSerializer,
+    request=WhitelistSubmissionSerializer,
     responses={
         200: ReportSafeResponseSerializer,
         201: ReportSafeResponseSerializer,
@@ -166,18 +167,36 @@ def predict_url(request):
 )
 @api_view(["POST"])
 @permission_classes([IsAdminUser])
+@transaction.atomic
 def report_safe(request):
-    serializer = URLSubmissionSerializer(data=request.data)
+    serializer = WhitelistSubmissionSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     hostname = hostname_from_url(serializer.validated_data["url"])
-    whitelist_entry, created = WhitelistDomain.objects.get_or_create(
-        domain=hostname,
-        defaults={"rank": 50},
+    whitelist_entry, created = (
+        WhitelistDomain.objects.select_for_update().get_or_create(
+            domain=hostname,
+            defaults={"rank": 50},
+        )
     )
 
-    if not created and whitelist_entry.rank <= 0:
+    action = WhitelistAuditEvent.Action.ADDED if created else None
+    previous_rank = None if created else whitelist_entry.rank
+    if not created and previous_rank <= 0:
         whitelist_entry.rank = 50
         whitelist_entry.save(update_fields=["rank"])
+        action = WhitelistAuditEvent.Action.PROMOTED
+
+    if action is not None:
+        WhitelistAuditEvent.objects.create(
+            domain=hostname,
+            action=action,
+            actor=request.user,
+            actor_username=request.user.get_username(),
+            previous_rank=previous_rank,
+            new_rank=whitelist_entry.rank,
+            reason=serializer.validated_data["reason"],
+            request_id=request.request_id,
+        )
 
     response_status = status.HTTP_201_CREATED if created else status.HTTP_200_OK
     return Response(

@@ -84,6 +84,15 @@ class URLSubmissionSerializer(serializers.Serializer):
         return value
 
 
+class WhitelistSubmissionSerializer(URLSubmissionSerializer):
+    reason = serializers.CharField(
+        max_length=500,
+        required=False,
+        default="Administrative review",
+        trim_whitespace=True,
+    )
+
+
 class WhitelistSearchSerializer(serializers.Serializer):
     q = serializers.CharField(max_length=253, min_length=2, trim_whitespace=True)
 

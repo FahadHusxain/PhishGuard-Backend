@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
@@ -17,6 +18,46 @@ class WhitelistDomain(models.Model):
 
     def __str__(self):
         return self.domain
+
+
+class WhitelistAuditEvent(models.Model):
+    class Action(models.TextChoices):
+        ADDED = "ADDED", "Added"
+        PROMOTED = "PROMOTED", "Promoted"
+
+    domain = models.CharField(max_length=253)
+    action = models.CharField(max_length=20, choices=Action.choices)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+    )
+    actor_username = models.CharField(max_length=150)
+    previous_rank = models.PositiveIntegerField(null=True, blank=True)
+    new_rank = models.PositiveIntegerField()
+    reason = models.CharField(max_length=500)
+    request_id = models.CharField(max_length=128)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-timestamp",)
+        indexes = (
+            models.Index(
+                fields=["domain", "-timestamp"],
+                name="whitelist_audit_lookup_idx",
+            ),
+        )
+        constraints = (
+            models.CheckConstraint(
+                condition=models.Q(new_rank__gt=0),
+                name="whitelist_audit_rank_positive",
+            ),
+        )
+
+    def __str__(self):
+        return f"{self.domain} - {self.action}"
 
 
 class ScanLog(models.Model):
