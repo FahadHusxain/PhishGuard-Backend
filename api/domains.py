@@ -2,7 +2,14 @@
 
 import ipaddress
 
+import tldextract
 from django.core.exceptions import ValidationError
+
+_SUFFIX_EXTRACTOR = tldextract.TLDExtract(
+    cache_dir=None,
+    suffix_list_urls=(),
+    include_psl_private_domains=True,
+)
 
 
 def normalize_hostname(hostname: str) -> str:
@@ -36,3 +43,37 @@ def normalize_hostname(hostname: str) -> str:
         raise ValidationError("The URL hostname is invalid.")
 
     return ascii_hostname
+
+
+def registrable_domain(hostname: str) -> str | None:
+    """Return the smallest privately registrable domain for a hostname."""
+    hostname = normalize_hostname(hostname)
+    try:
+        ipaddress.ip_address(hostname)
+    except ValueError:
+        extracted = _SUFFIX_EXTRACTOR(hostname)
+        return extracted.top_domain_under_public_suffix or None
+    return hostname
+
+
+def normalize_whitelist_domain(hostname: str) -> str:
+    """Canonicalize a whitelist entry and reject shared suffix boundaries."""
+    hostname = normalize_hostname(hostname)
+    if registrable_domain(hostname) is None:
+        raise ValidationError(
+            "A public suffix cannot be added to the trusted whitelist."
+        )
+    return hostname
+
+
+def whitelist_candidates(hostname: str) -> list[str]:
+    """Return exact-to-registrable candidates without crossing ownership bounds."""
+    hostname = normalize_hostname(hostname)
+    boundary = registrable_domain(hostname)
+    if boundary is None:
+        return [hostname]
+
+    labels = hostname.split(".")
+    boundary_labels = boundary.split(".")
+    final_start = len(labels) - len(boundary_labels)
+    return [".".join(labels[index:]) for index in range(final_start + 1)]

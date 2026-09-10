@@ -4,7 +4,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 from rest_framework import serializers
 
-from .domains import normalize_hostname
+from .domains import normalize_hostname, normalize_whitelist_domain
 
 
 def hostname_from_url(url: str) -> str:
@@ -60,6 +60,12 @@ class WhitelistSubmissionSerializer(URLSubmissionSerializer):
         trim_whitespace=True,
     )
 
+    def validate_url(self, value: str) -> str:
+        value = super().validate_url(value)
+        hostname = hostname_from_url(value)
+        normalize_whitelist_domain(hostname)
+        return value
+
 
 class WhitelistSearchSerializer(serializers.Serializer):
     q = serializers.CharField(max_length=253, min_length=2, trim_whitespace=True)
@@ -89,6 +95,10 @@ class PredictionResponseSerializer(serializers.Serializer):
     rule_risk_score = serializers.FloatField(
         min_value=0,
         max_value=100,
+        required=False,
+    )
+    signals = serializers.ListField(
+        child=serializers.CharField(),
         required=False,
     )
 

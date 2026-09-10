@@ -15,6 +15,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 
+from .domains import whitelist_candidates
 from .ml_logic import predict_url_security
 from .models import ScanLog, WhitelistAuditEvent, WhitelistDomain
 from .serializers import (
@@ -83,20 +84,10 @@ def get_ip_location(url: str) -> tuple[str | None, str]:
     return ip_address, country
 
 
-def _whitelist_candidates(hostname: str) -> list[str]:
-    """Build exact hostname and parent-domain candidates for whitelist lookup."""
-    try:
-        ipaddress.ip_address(hostname)
-    except ValueError:
-        labels = hostname.split(".")
-        return [".".join(labels[index:]) for index in range(max(len(labels) - 1, 1))]
-    return [hostname]
-
-
 def _trusted_domain(hostname: str) -> WhitelistDomain | None:
     return (
         WhitelistDomain.objects.filter(
-            domain__in=_whitelist_candidates(hostname),
+            domain__in=whitelist_candidates(hostname),
             rank__gt=0,
         )
         .order_by("-rank")

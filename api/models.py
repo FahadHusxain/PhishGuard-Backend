@@ -3,7 +3,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models.functions import Lower
 
-from .domains import normalize_hostname
+from .domains import normalize_whitelist_domain
 
 
 class WhitelistDomain(models.Model):
@@ -27,12 +27,12 @@ class WhitelistDomain(models.Model):
         return self.domain
 
     def save(self, *args, **kwargs):
-        self.domain = normalize_hostname(self.domain)
+        self.domain = normalize_whitelist_domain(self.domain)
         return super().save(*args, **kwargs)
 
     def clean(self):
         super().clean()
-        self.domain = normalize_hostname(self.domain)
+        self.domain = normalize_whitelist_domain(self.domain)
 
 
 class WhitelistAuditEvent(models.Model):

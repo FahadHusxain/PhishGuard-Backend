@@ -46,6 +46,9 @@ Whitelist hostnames are stored in canonical lowercase ASCII form. Model and API
 writes normalize Unicode IDNs and trailing dots, while a database constraint
 prevents case-insensitive duplicates. This keeps trusted-domain matching
 consistent regardless of how a hostname is written in a submitted URL.
+Matching uses an offline Public Suffix List, including private suffixes, so a
+trusted tenant cannot accidentally grant trust to sibling tenants or an entire
+public suffix.
 
 ## Configuration
 
@@ -95,6 +98,13 @@ CNN can be loaded through the lightweight NumPy adapter, but it is intentionally
 disabled because the repository contains no training/evaluation provenance and
 smoke evaluation shows unacceptable false positives. See
 `ml_models/MODEL_CARD.md` before changing `PHISHGUARD_ML_ENABLED`.
+
+Rules evaluate independent structural signals such as IP-address hosts,
+credential-lure tokens, nested redirect URLs, unusual subdomain depth, encoded
+content, internationalized hostnames, and nonstandard ports. Keywords are
+tokenized rather than substring-matched to reduce obvious false positives.
+Rules-only results remain `UNKNOWN` when the evidence is insufficient; absence
+of a known rule is never presented as proof that an arbitrary URL is safe.
 
 ## Verification
 

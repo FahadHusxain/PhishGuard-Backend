@@ -27,7 +27,11 @@ from backend.request_context import current_request_id
 from backend.settings import env_bool, env_list
 
 from .admin import ScanLogAdmin, WhitelistAuditEventAdmin
-from .domains import normalize_hostname
+from .domains import (
+    normalize_hostname,
+    normalize_whitelist_domain,
+    whitelist_candidates,
+)
 from .ml_classifier import URLCNNClassifier
 from .ml_logic import predict_url_security
 from .models import ScanLog, WhitelistAuditEvent, WhitelistDomain
@@ -250,6 +254,29 @@ class URLApiTests(APITestCase):
         self.assertEqual(response.data["status"], "SAFE")
         self.assertEqual(response.data["confidence"], 100)
 
+    def test_whitelist_does_not_cross_private_suffix_tenant_boundaries(self):
+        WhitelistDomain.objects.create(domain="trusted-user.github.io", rank=1)
+
+        with (
+            patch(
+                "api.views.predict_url_security",
+                return_value={
+                    "status": "PHISHING",
+                    "confidence": 90,
+                    "message": "Suspicious",
+                },
+            ),
+            patch("api.views.get_ip_location", return_value=(None, "Unknown")),
+        ):
+            response = self.client.post(
+                reverse("predict"),
+                {"url": "https://attacker.github.io/login"},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "PHISHING")
+
     def test_dashboard_does_not_expose_full_urls_or_ip_addresses(self):
         ScanLog.objects.create(
             origin="https://example.com/reset?token=secret",
@@ -298,6 +325,29 @@ class DomainIntegrityTests(APITestCase):
                 [WhitelistDomain(domain="EXAMPLE.COM", rank=2)]
             )
 
+    def test_whitelist_candidates_stop_at_the_registrable_domain(self):
+        self.assertEqual(
+            whitelist_candidates("signin.accounts.example.co.uk"),
+            [
+                "signin.accounts.example.co.uk",
+                "accounts.example.co.uk",
+                "example.co.uk",
+            ],
+        )
+
+    def test_private_suffix_keeps_tenants_isolated(self):
+        self.assertEqual(
+            whitelist_candidates("repo.user.github.io"),
+            ["repo.user.github.io", "user.github.io"],
+        )
+
+    def test_public_suffix_cannot_be_whitelisted(self):
+        with self.assertRaises(DjangoValidationError):
+            normalize_whitelist_domain("co.uk")
+
+    def test_ip_address_is_its_own_whitelist_boundary(self):
+        self.assertEqual(whitelist_candidates("2001:0db8::1"), ["2001:db8::1"])
+
 
 class WhitelistAdministrationTests(APITestCase):
     def authenticate_staff_user(self):
@@ -318,6 +368,18 @@ class WhitelistAdministrationTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(response.data["error"]["code"], "not_authenticated")
+        self.assertFalse(WhitelistDomain.objects.exists())
+
+    def test_staff_user_cannot_whitelist_a_public_suffix(self):
+        self.authenticate_staff_user()
+
+        response = self.client.post(
+            reverse("report_safe"),
+            {"url": "https://co.uk", "reason": "Invalid trust boundary"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertFalse(WhitelistDomain.objects.exists())
 
     def test_http_basic_authentication_is_disabled(self):
@@ -475,6 +537,78 @@ class MLClassifierTests(SimpleTestCase):
         self.assertEqual(result["engine"], "rules-only")
         self.assertEqual(result["status"], "UNKNOWN")
         self.assertEqual(result["confidence"], 0)
+
+    def test_unseen_credential_lure_url_triggers_multiple_independent_signals(self):
+        with patch("api.ml_logic._model_probability", return_value=None):
+            result = predict_url_security(
+                "https://secure-login.verify-account.customer.example.com/"
+                "password/update"
+            )
+
+        self.assertEqual(result["status"], "PHISHING")
+        self.assertGreaterEqual(result["risk_score"], 50)
+        self.assertGreaterEqual(len(result["signals"]), 3)
+
+    def test_keywords_are_tokenized_instead_of_matched_as_substrings(self):
+        with patch("api.ml_logic._model_probability", return_value=None):
+            result = predict_url_security("https://example.com/bankruptcy-report")
+
+        self.assertEqual(result["status"], "UNKNOWN")
+        self.assertEqual(result["risk_score"], 0)
+
+    def test_structural_signals_are_detected_independently(self):
+        cases = (
+            (
+                "http://example.com/account",
+                "Sensitive page is served over unencrypted HTTP",
+            ),
+            (
+                "https://8.8.8.8/",
+                "URL uses an IP address instead of a domain",
+            ),
+            (
+                "https://example.com/?next=https%3A%2F%2Fevil.example",
+                "Query embeds another URL and may conceal a redirect",
+            ),
+            (
+                f"https://example.com/{'a' * 210}",
+                "URL is unusually long",
+            ),
+            (
+                "https://example.com/@trusted.example",
+                "URL contains a misleading @ character",
+            ),
+            (
+                "https://one.two.three.four.example.com/",
+                "Hostname has an extremely deep subdomain chain",
+            ),
+            (
+                "https://xn--bcher-kva.example/",
+                "Hostname uses internationalized-domain encoding",
+            ),
+            (
+                "https://one-two-three-four-five.example/",
+                "Hostname contains many hyphens",
+            ),
+            (
+                "https://1234567890abc.example/",
+                "Hostname contains an unusual concentration of digits",
+            ),
+            (
+                "https://example.com/%41%42%43",
+                "URL contains heavy percent encoding",
+            ),
+            (
+                "https://example.com:8443/",
+                "URL uses a nonstandard network port",
+            ),
+        )
+
+        with patch("api.ml_logic._model_probability", return_value=None):
+            for url, expected_signal in cases:
+                with self.subTest(url=url):
+                    result = predict_url_security(url)
+                    self.assertIn(expected_signal, result["signals"])
 
 
 class LoadDomainsCommandTests(APITestCase):

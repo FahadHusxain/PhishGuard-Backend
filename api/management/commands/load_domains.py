@@ -6,7 +6,7 @@ from pathlib import Path
 from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError
 
-from api.domains import normalize_hostname
+from api.domains import normalize_whitelist_domain
 from api.models import WhitelistDomain
 
 
@@ -44,7 +44,7 @@ class Command(BaseCommand):
                 for line_number, row in enumerate(csv.reader(csv_file), start=1):
                     try:
                         rank = int(row[0])
-                        domain = normalize_hostname(row[1])
+                        domain = normalize_whitelist_domain(row[1])
                         if rank < 1:
                             raise ValueError
                     except (IndexError, ValueError, ValidationError):
