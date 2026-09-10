@@ -1,3 +1,4 @@
+import base64
 import json
 import logging
 import os
@@ -118,6 +119,48 @@ class StructuredLoggingTests(SimpleTestCase):
         self.assertEqual(payload["level"], "INFO")
 
 
+class APIContractTests(APITestCase):
+    def test_versioned_and_compatibility_routes_share_the_error_contract(self):
+        endpoints = [reverse("predict"), reverse("api-v1:predict")]
+
+        for endpoint in endpoints:
+            with self.subTest(endpoint=endpoint):
+                response = self.client.post(
+                    endpoint,
+                    {"url": "not-a-url"},
+                    format="json",
+                )
+
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertEqual(response.data["error"]["code"], "invalid")
+                self.assertIn("url", response.data["error"]["details"])
+                self.assertEqual(response.data["request_id"], response["X-Request-ID"])
+
+    def test_method_errors_use_the_standard_envelope(self):
+        response = self.client.get(reverse("api-v1:predict"))
+
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        self.assertEqual(response.data["error"]["code"], "method_not_allowed")
+
+    def test_openapi_schema_contains_only_the_versioned_contract(self):
+        response = self.client.get(
+            reverse("api_schema"),
+            headers={"Accept": "application/vnd.oai.openapi+json"},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        schema = json.loads(response.content)
+        self.assertIn("/api/v1/predict/", schema["paths"])
+        self.assertNotIn("/api/predict/", schema["paths"])
+        self.assertEqual(schema["info"]["version"], "1.0.0")
+
+    def test_interactive_api_documentation_is_available(self):
+        response = self.client.get(reverse("api_docs"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(response, "swagger-ui")
+
+
 class URLApiTests(APITestCase):
     def test_predict_rejects_malformed_urls(self):
         response = self.client.post(
@@ -224,6 +267,25 @@ class WhitelistAdministrationTests(APITestCase):
             reverse("report_safe"),
             {"url": "https://example.com"},
             format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data["error"]["code"], "not_authenticated")
+        self.assertFalse(WhitelistDomain.objects.exists())
+
+    def test_http_basic_authentication_is_disabled(self):
+        get_user_model().objects.create_user(
+            username="administrator",
+            password="test-password",
+            is_staff=True,
+        )
+        credentials = base64.b64encode(b"administrator:test-password").decode()
+
+        response = self.client.post(
+            reverse("report_safe"),
+            {"url": "https://example.com"},
+            format="json",
+            headers={"Authorization": f"Basic {credentials}"},
         )
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

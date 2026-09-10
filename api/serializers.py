@@ -92,3 +92,64 @@ class WhitelistSearchSerializer(serializers.Serializer):
         if not all(character.isalnum() or character in ".-" for character in value):
             raise serializers.ValidationError("Enter a valid domain fragment.")
         return value
+
+
+class PredictionResponseSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=["SAFE", "PHISHING", "UNKNOWN"])
+    confidence = serializers.FloatField(min_value=0, max_value=100)
+    risk_score = serializers.FloatField(min_value=0, max_value=100, required=False)
+    message = serializers.CharField()
+    country = serializers.CharField()
+    engine = serializers.ChoiceField(
+        choices=["rules-only", "hybrid-cnn-rules"],
+        required=False,
+    )
+    model_risk_score = serializers.FloatField(
+        min_value=0,
+        max_value=100,
+        required=False,
+    )
+    rule_risk_score = serializers.FloatField(
+        min_value=0,
+        max_value=100,
+        required=False,
+    )
+
+
+class WhitelistResultSerializer(serializers.Serializer):
+    domain = serializers.CharField()
+    rank = serializers.IntegerField(min_value=0)
+
+
+class ReportSafeResponseSerializer(serializers.Serializer):
+    status = serializers.CharField()
+    domain = serializers.CharField()
+
+
+class RecentScanSerializer(serializers.Serializer):
+    domain = serializers.CharField()
+    status = serializers.ChoiceField(choices=["SAFE", "PHISHING", "UNKNOWN"])
+    confidence = serializers.FloatField(min_value=0, max_value=100)
+    timestamp = serializers.DateTimeField()
+    country = serializers.CharField()
+
+
+class DashboardStatsSerializer(serializers.Serializer):
+    total_scans = serializers.IntegerField(min_value=0)
+    phishing_count = serializers.IntegerField(min_value=0)
+    safe_count = serializers.IntegerField(min_value=0)
+    unknown_count = serializers.IntegerField(min_value=0)
+    whitelist_count = serializers.IntegerField(min_value=0)
+    recent_logs = RecentScanSerializer(many=True)
+    graph_data = serializers.ListField(child=serializers.JSONField())
+
+
+class ErrorDetailSerializer(serializers.Serializer):
+    code = serializers.CharField()
+    message = serializers.CharField()
+    details = serializers.JSONField()
+
+
+class ErrorEnvelopeSerializer(serializers.Serializer):
+    error = ErrorDetailSerializer()
+    request_id = serializers.CharField(allow_null=True)

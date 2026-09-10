@@ -28,6 +28,15 @@ Operational probes are available at `/health/live/` and `/health/ready/`.
 Every response includes an `X-Request-ID` header for log correlation. Production
 logs are emitted as one JSON object per line.
 
+The versioned API is available under `/api/v1/`. Existing `/api/` routes remain
+available for compatibility. OpenAPI JSON and interactive documentation are
+published at `/api/schema/` and `/api/docs/`.
+
+API errors use a stable envelope containing `error.code`, a safe human-readable
+`error.message`, structured `error.details`, and the response `request_id`.
+Administrative REST actions accept authenticated Django sessions; HTTP Basic
+authentication is disabled.
+
 ## Configuration
 
 Local configuration belongs in `.env`, which Git ignores. Copy

@@ -50,6 +50,7 @@ jobs:
         run: |
           python manage.py check
           python manage.py makemigrations --check --dry-run
+          python manage.py spectacular --validate --fail-on-warn --file /tmp/openapi.yml
           python gunicorn.conf.py
 
       - name: Check hardened deployment configuration

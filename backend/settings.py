@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "drf_spectacular",
     "corsheaders",
     "api",
 ]
@@ -198,6 +199,14 @@ if not 0.0 <= PHISHGUARD_PHISHING_THRESHOLD <= 100.0:
     )
 
 REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.AllowAny",
+    ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "EXCEPTION_HANDLER": "backend.exceptions.api_exception_handler",
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
@@ -206,6 +215,15 @@ REST_FRAMEWORK = {
         "anon": os.getenv("PHISHGUARD_ANON_RATE", "60/min"),
         "user": os.getenv("PHISHGUARD_USER_RATE", "300/min"),
     },
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "PhishGuard API",
+    "DESCRIPTION": "URL phishing analysis and trusted-domain administration API.",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+    "PREPROCESSING_HOOKS": ["backend.schema.exclude_legacy_api_routes"],
 }
 
 LOGGING = {
