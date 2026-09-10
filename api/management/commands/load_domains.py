@@ -3,11 +3,11 @@
 import csv
 from pathlib import Path
 
+from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError
-from rest_framework.serializers import ValidationError
 
+from api.domains import normalize_hostname
 from api.models import WhitelistDomain
-from api.serializers import normalize_hostname
 
 
 class Command(BaseCommand):

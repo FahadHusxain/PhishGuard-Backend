@@ -42,6 +42,11 @@ records containing the staff actor, reason, rank transition, request ID, and
 timestamp. Repeated requests for an already-trusted domain do not create false
 change events.
 
+Whitelist hostnames are stored in canonical lowercase ASCII form. Model and API
+writes normalize Unicode IDNs and trailing dots, while a database constraint
+prevents case-insensitive duplicates. This keeps trusted-domain matching
+consistent regardless of how a hostname is written in a submitted URL.
+
 ## Configuration
 
 Local configuration belongs in `.env`, which Git ignores. Copy

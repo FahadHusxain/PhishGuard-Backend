@@ -12,6 +12,7 @@ from unittest.mock import patch
 from django.conf import settings
 from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.db import DatabaseError, IntegrityError, transaction
@@ -26,6 +27,7 @@ from backend.request_context import current_request_id
 from backend.settings import env_bool, env_list
 
 from .admin import ScanLogAdmin, WhitelistAuditEventAdmin
+from .domains import normalize_hostname
 from .ml_classifier import URLCNNClassifier
 from .ml_logic import predict_url_security
 from .models import ScanLog, WhitelistAuditEvent, WhitelistDomain
@@ -269,6 +271,32 @@ class URLApiTests(APITestCase):
         response = self.client.get("/api/fix-now/")
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class DomainIntegrityTests(APITestCase):
+    def test_normalizer_canonicalizes_unicode_case_and_trailing_dot(self):
+        self.assertEqual(
+            normalize_hostname(" BÜCHER.Example. "),
+            "xn--bcher-kva.example",
+        )
+
+    def test_model_writes_are_canonicalized(self):
+        entry = WhitelistDomain.objects.create(domain=" EXAMPLE.COM. ", rank=1)
+
+        self.assertEqual(entry.domain, "example.com")
+        self.assertTrue(WhitelistDomain.objects.filter(domain="example.com").exists())
+
+    def test_model_rejects_an_invalid_hostname(self):
+        with self.assertRaises(DjangoValidationError):
+            WhitelistDomain.objects.create(domain="invalid_domain", rank=1)
+
+    def test_database_rejects_case_insensitive_duplicates(self):
+        WhitelistDomain.objects.create(domain="example.com", rank=1)
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            WhitelistDomain.objects.bulk_create(
+                [WhitelistDomain(domain="EXAMPLE.COM", rank=2)]
+            )
 
 
 class WhitelistAdministrationTests(APITestCase):

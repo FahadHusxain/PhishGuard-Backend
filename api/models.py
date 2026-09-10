@@ -1,10 +1,13 @@
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.db.models.functions import Lower
+
+from .domains import normalize_hostname
 
 
 class WhitelistDomain(models.Model):
-    domain = models.CharField(max_length=255, unique=True, db_index=True)
+    domain = models.CharField(max_length=253, unique=True, db_index=True)
     rank = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -14,10 +17,22 @@ class WhitelistDomain(models.Model):
                 condition=models.Q(rank__gte=0),
                 name="whitelist_rank_nonnegative",
             ),
+            models.UniqueConstraint(
+                Lower("domain"),
+                name="whitelist_domain_case_insensitive_unique",
+            ),
         )
 
     def __str__(self):
         return self.domain
+
+    def save(self, *args, **kwargs):
+        self.domain = normalize_hostname(self.domain)
+        return super().save(*args, **kwargs)
+
+    def clean(self):
+        super().clean()
+        self.domain = normalize_hostname(self.domain)
 
 
 class WhitelistAuditEvent(models.Model):
