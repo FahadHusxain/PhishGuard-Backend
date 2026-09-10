@@ -1,4 +1,7 @@
+import json
+import logging
 import os
+import uuid
 from datetime import timedelta
 from io import StringIO
 from pathlib import Path
@@ -17,6 +20,8 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from backend.logging import JSONFormatter, RequestContextFilter
+from backend.request_context import current_request_id
 from backend.settings import env_bool, env_list
 
 from .admin import ScanLogAdmin
@@ -48,6 +53,69 @@ class EnvironmentSettingsTests(SimpleTestCase):
                 env_list("LIST_SETTING"),
                 ["localhost", "127.0.0.1", "example.com"],
             )
+
+
+class OperationalEndpointTests(APITestCase):
+    def test_liveness_does_not_depend_on_the_database(self):
+        response = self.client.get(reverse("health_live"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), {"status": "ok"})
+        uuid.UUID(response["X-Request-ID"])
+
+    def test_readiness_reports_database_availability(self):
+        response = self.client.get(reverse("health_ready"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), {"status": "ready"})
+
+    def test_readiness_failure_is_generic(self):
+        with patch("backend.health._database_is_ready", return_value=False):
+            response = self.client.get(reverse("health_ready"))
+
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertEqual(response.json(), {"status": "unavailable"})
+
+    def test_valid_request_id_is_preserved(self):
+        request_id = "frontend-request_123"
+
+        response = self.client.get(
+            reverse("health_live"),
+            headers={"X-Request-ID": request_id},
+        )
+
+        self.assertEqual(response["X-Request-ID"], request_id)
+
+    def test_unsafe_request_id_is_replaced(self):
+        response = self.client.get(
+            reverse("health_live"),
+            headers={"X-Request-ID": "unsafe request\nvalue"},
+        )
+
+        uuid.UUID(response["X-Request-ID"])
+
+
+class StructuredLoggingTests(SimpleTestCase):
+    def test_request_context_is_injected_and_serialized(self):
+        context_token = current_request_id.set("request-123")
+        try:
+            record = logging.LogRecord(
+                name="phishguard.test",
+                level=logging.INFO,
+                pathname=__file__,
+                lineno=1,
+                msg="test_event",
+                args=(),
+                exc_info=None,
+            )
+            RequestContextFilter().filter(record)
+            payload = json.loads(JSONFormatter().format(record))
+        finally:
+            current_request_id.reset(context_token)
+
+        self.assertEqual(payload["event"], "test_event")
+        self.assertEqual(payload["request_id"], "request-123")
+        self.assertEqual(payload["level"], "INFO")
 
 
 class URLApiTests(APITestCase):

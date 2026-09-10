@@ -24,6 +24,10 @@ On Windows PowerShell, activate the environment with:
 
 The API is available at `http://127.0.0.1:8000/api/`.
 
+Operational probes are available at `/health/live/` and `/health/ready/`.
+Every response includes an `X-Request-ID` header for log correlation. Production
+logs are emitted as one JSON object per line.
+
 ## Configuration
 
 Local configuration belongs in `.env`, which Git ignores. Copy

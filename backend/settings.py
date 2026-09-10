@@ -54,6 +54,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "api.middleware.RequestIDMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -202,5 +203,35 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "anon": os.getenv("PHISHGUARD_ANON_RATE", "60/min"),
         "user": os.getenv("PHISHGUARD_USER_RATE", "300/min"),
+    },
+}
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "filters": {
+        "request_context": {
+            "()": "backend.logging.RequestContextFilter",
+        }
+    },
+    "formatters": {
+        "json": {
+            "()": "backend.logging.JSONFormatter",
+        },
+        "development": {
+            "format": "{asctime} {levelname} {name} request_id={request_id} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "development" if DEBUG else "json",
+            "filters": ["request_context"],
+        }
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": os.getenv("DJANGO_LOG_LEVEL", "INFO"),
     },
 }
