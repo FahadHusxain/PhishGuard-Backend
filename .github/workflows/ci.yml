@@ -85,5 +85,3 @@ jobs:
           context: .
           push: false
           tags: phishguard-backend:ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
