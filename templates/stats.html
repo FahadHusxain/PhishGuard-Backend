@@ -5,44 +5,39 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Aggregate PhishGuard scan statistics.">
-    <title>PhishGuard | Analytics</title>
+    <title>PhishGuard | Intelligence</title>
     <link rel="icon" href="{% static 'phishguard/favicon.svg' %}" type="image/svg+xml">
     <link rel="stylesheet" href="{% static 'phishguard/dashboard.css' %}">
     <script src="{% static 'phishguard/dashboard.js' %}" defer></script>
 </head>
 <body data-page="analytics">
     <a class="skip-link" href="#main-content">Skip to main content</a>
-    <header class="site-header">
-        <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">PG</span><span>PhishGuard</span></a>
-        <nav aria-label="Primary navigation"><a href="/">Dashboard</a><a href="/api/docs/">API docs</a></nav>
-    </header>
-    <main id="main-content" class="page-shell">
-        <section class="hero">
-            <p class="eyebrow">Aggregate data</p>
-            <h1>Scan analytics</h1>
-            <p class="hero-copy">A privacy-conscious summary of recorded verdicts.</p>
-        </section>
-        <section class="metrics" aria-label="Aggregate scan statistics">
-            <article class="metric-card"><span>Total scans</span><strong id="total-scans">0</strong></article>
-            <article class="metric-card danger"><span>Phishing</span><strong id="phishing-count">0</strong></article>
-            <article class="metric-card safe"><span>Safe</span><strong id="safe-count">0</strong></article>
-            <article class="metric-card"><span>Inconclusive</span><strong id="unknown-count">0</strong></article>
-        </section>
-        <section class="panel" aria-labelledby="distribution-title">
-            <div class="section-heading">
-                <div><p class="eyebrow">Current totals</p><h2 id="distribution-title">Verdict distribution</h2></div>
-                <span id="stats-status" class="status-chip">Loading</span>
-            </div>
-            <div class="progress-group">
-                <label for="safe-progress">Safe <span id="safe-percent">0%</span></label>
-                <progress id="safe-progress" class="safe-progress" max="100" value="0">0%</progress>
-                <label for="phishing-progress">Phishing <span id="phishing-percent">0%</span></label>
-                <progress id="phishing-progress" class="danger-progress" max="100" value="0">0%</progress>
-                <label for="unknown-progress">Inconclusive <span id="unknown-percent">0%</span></label>
-                <progress id="unknown-progress" max="100" value="0">0%</progress>
-            </div>
-        </section>
-    </main>
-    <footer><p>PhishGuard · Aggregate statistics only</p></footer>
+    <div class="app-shell">
+        <aside class="side-rail">
+            <a class="brand" href="/"><span class="brand-shield" aria-hidden="true">PG</span><span class="brand-copy"><strong>PHISHGUARD</strong><small>Threat console</small></span></a>
+            <nav aria-label="Primary navigation"><a href="/"><span>01</span> Analyze</a><a class="active" href="/api/analytics/"><span>02</span> Intelligence</a></nav>
+            <div class="rail-links"><a href="/api/docs/">API documentation <span aria-hidden="true">↗</span></a></div>
+            <div class="system-state"><i aria-hidden="true"></i><span>Engine online</span></div>
+        </aside>
+        <main id="main-content" class="workspace">
+            <header class="console-header"><div><p class="kicker">Aggregate intelligence</p><h1>Verdict analytics</h1></div><a class="privacy-badge" href="/">← Analysis console</a></header>
+            <section class="analytics-intro"><p>Privacy-conscious totals from recorded URL investigations.</p></section>
+            <section class="metrics" aria-label="Aggregate scan statistics">
+                <article class="metric-card total"><span>Total analyzed</span><strong id="total-scans">0</strong><small>Recorded checks</small></article>
+                <article class="metric-card danger"><span>Threats flagged</span><strong id="phishing-count">0</strong><small>High-risk verdicts</small></article>
+                <article class="metric-card safe"><span>Clear signals</span><strong id="safe-count">0</strong><small>Safe verdicts</small></article>
+                <article class="metric-card unknown"><span>Needs caution</span><strong id="unknown-count">0</strong><small>Inconclusive verdicts</small></article>
+            </section>
+            <section class="module distribution-module" aria-labelledby="distribution-title">
+                <div class="module-heading"><div><p class="kicker">Signal breakdown</p><h2 id="distribution-title">Verdict distribution</h2></div><span id="stats-status" class="status-chip">Connecting</span></div>
+                <div class="progress-group">
+                    <label for="safe-progress"><span>Safe</span><strong id="safe-percent">0%</strong></label><progress id="safe-progress" class="safe-progress" max="100" value="0">0%</progress>
+                    <label for="phishing-progress"><span>Phishing</span><strong id="phishing-percent">0%</strong></label><progress id="phishing-progress" class="danger-progress" max="100" value="0">0%</progress>
+                    <label for="unknown-progress"><span>Inconclusive</span><strong id="unknown-percent">0%</strong></label><progress id="unknown-progress" max="100" value="0">0%</progress>
+                </div>
+            </section>
+            <footer><p>PhishGuard <span>•</span> Aggregate statistics only</p><a href="/api/schema/">OpenAPI schema</a></footer>
+        </main>
+    </div>
 </body>
 </html>

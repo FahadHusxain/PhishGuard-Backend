@@ -179,6 +179,9 @@ class OperationalEndpointTests(APITestCase):
 
         self.assertContains(response, "/static/phishguard/dashboard.css")
         self.assertContains(response, "/static/phishguard/dashboard.js")
+        self.assertContains(response, "Link analysis console")
+        self.assertContains(response, 'class="side-rail"')
+        self.assertContains(response, "Trusted-domain index")
         self.assertNotContains(response, '<script src="https://')
         self.assertNotContains(response, '<link rel="stylesheet" href="https://')
         self.assertNotContains(response, "onclick=")
