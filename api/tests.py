@@ -2,6 +2,7 @@ import base64
 import json
 import logging
 import os
+import runpy
 import uuid
 from datetime import timedelta
 from io import StringIO
@@ -60,6 +61,11 @@ TEST_STATIC_STORAGES = {
 
 
 class EnvironmentSettingsTests(SimpleTestCase):
+    def test_gunicorn_disables_filesystem_control_socket(self):
+        config = runpy.run_path(settings.BASE_DIR / "gunicorn.conf.py")
+
+        self.assertIs(config["control_socket_disable"], True)
+
     def test_env_bool_uses_default_when_variable_is_missing(self):
         with patch.dict(os.environ, {}, clear=True):
             self.assertTrue(env_bool("MISSING_SETTING", default=True))

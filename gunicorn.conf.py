@@ -29,3 +29,7 @@ max_requests_jitter = 100
 accesslog = None
 errorlog = "-"
 capture_output = True
+# Gunicorn 26 enables a filesystem-backed control socket by default. The
+# Compose service deliberately has a read-only root filesystem and does not
+# use that local control interface, so disable it explicitly.
+control_socket_disable = True

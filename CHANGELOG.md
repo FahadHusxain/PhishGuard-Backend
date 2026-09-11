@@ -45,6 +45,8 @@ approved for merge.
 
 - Rules-only results without sufficient evidence now return `UNKNOWN` instead
   of making an unsupported claim that an arbitrary URL is safe.
+- Gunicorn's unused filesystem control socket is disabled so the hardened,
+  read-only container starts without attempting to write under the app home.
 - Whitelist mutation now requires an authorized staff session and explicit
   model permissions.
 - Recent scan targets are visible only to authorized staff users.
