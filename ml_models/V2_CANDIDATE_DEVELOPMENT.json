@@ -1,0 +1,126 @@
+{
+  "pipeline_version": 2,
+  "candidate_status": "NOT_PROMOTED",
+  "candidate_reason": "Thresholds are frozen, but published holdouts, operational slices, and shadow-mode behavior have not yet been evaluated.",
+  "source_manifest": "open_corpus_manifest.json",
+  "readiness_report": "OPEN_CORPUS_READINESS.json",
+  "artifact_format": "deterministic NumPy NPZ; pickle disabled",
+  "model_sha256": "c4f10d32f8b6df65f32fb76de37d4b43278c5f94ef44ca8fdf80c079e4c6216c",
+  "corpus": {
+    "unique_urls": 462644,
+    "duplicate_rows_removed": 207,
+    "corpus_sha256": "3225bde3e1c51eb0fca82bd1b03cc050c32b88f7dd721012505ff6e3d267249e",
+    "quarantine": {
+      "invalid_rows": 4446,
+      "quarantined_groups": 340,
+      "quarantined_rows": 44038,
+      "retained_rows": 462851
+    }
+  },
+  "split_strategy": "deterministic label/source-stratified registrable-domain groups: 70/15/15",
+  "random_seed": 20260911,
+  "training_environment": {
+    "python": "3.13.15",
+    "numpy": "2.5.3",
+    "scikit_learn": "1.9.1"
+  },
+  "features": {
+    "type": "character hashing",
+    "ngram_range": [
+      3,
+      5
+    ],
+    "feature_count": 262144
+  },
+  "decision_policy": {
+    "minimum_calibration_precision": 0.995,
+    "safe": "probability <= lower_threshold",
+    "unknown": "lower_threshold < probability < upper_threshold",
+    "phishing": "probability >= upper_threshold"
+  },
+  "splits": {
+    "fit": {
+      "rows": 323849,
+      "groups": 139891,
+      "benign": 186184,
+      "phishing": 137665,
+      "source_membership": {
+        "phishvn-v3.1.0": 9077,
+        "phreshphish-v1.0.1": 314774
+      }
+    },
+    "calibration": {
+      "rows": 69398,
+      "groups": 29933,
+      "benign": 39897,
+      "phishing": 29501,
+      "source_membership": {
+        "phishvn-v3.1.0": 1950,
+        "phreshphish-v1.0.1": 67448
+      }
+    },
+    "development": {
+      "rows": 69397,
+      "groups": 29973,
+      "benign": 39897,
+      "phishing": 29500,
+      "source_membership": {
+        "phishvn-v3.1.0": 1953,
+        "phreshphish-v1.0.1": 67444
+      }
+    }
+  },
+  "calibration_metrics": {
+    "roc_auc": 0.990307,
+    "pr_auc": 0.986442,
+    "brier_score": 0.033155,
+    "log_loss": 0.119922,
+    "lower_threshold": 0.0248599,
+    "upper_threshold": 0.98727048,
+    "decisive_coverage": 0.658348,
+    "unknown_rate": 0.341652,
+    "safe_precision": 0.995001,
+    "phishing_precision": 0.995027,
+    "benign_recall": 0.768303,
+    "phishing_recall": 0.501915,
+    "false_safe_rate": 0.00522,
+    "false_phishing_rate": 0.001855,
+    "counts": {
+      "safe": 30807,
+      "unknown": 23710,
+      "phishing": 14881,
+      "false_safe": 154,
+      "false_phishing": 74
+    }
+  },
+  "development_metrics": {
+    "roc_auc": 0.989293,
+    "pr_auc": 0.985446,
+    "brier_score": 0.036338,
+    "log_loss": 0.128988,
+    "lower_threshold": 0.0248599,
+    "upper_threshold": 0.98727048,
+    "decisive_coverage": 0.670216,
+    "unknown_rate": 0.329784,
+    "safe_precision": 0.994485,
+    "phishing_precision": 0.995693,
+    "benign_recall": 0.777377,
+    "phishing_recall": 0.51722,
+    "false_safe_rate": 0.005831,
+    "false_phishing_rate": 0.001654,
+    "counts": {
+      "safe": 31187,
+      "unknown": 22886,
+      "phishing": 15324,
+      "false_safe": 172,
+      "false_phishing": 66
+    }
+  },
+  "final_holdouts_opened": false,
+  "promotion_gate": {
+    "published_holdouts_passed": false,
+    "operational_slices_passed": false,
+    "latency_and_memory_passed": false,
+    "shadow_review_passed": false
+  }
+}

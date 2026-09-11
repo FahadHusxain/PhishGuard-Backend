@@ -100,6 +100,24 @@ def _phishvn_samples(path: Path, source_manifest: dict) -> Iterator[URLSample]:
 
 def audit_open_sources(data_directory: Path) -> dict:
     """Audit training splits while preserving all published holdouts."""
+    retained_samples, pre_adjudication, quarantine = load_open_training_samples(
+        data_directory
+    )
+    report = audit_corpus(retained_samples)
+    report["pre_adjudication"] = pre_adjudication
+    report["quarantine"] = quarantine
+    report["audited_sources"] = ["phreshphish-v1.0.1", "phishvn-v3.1.0"]
+    report["preserved_holdouts"] = [
+        "PhreshPhish published test split",
+        "PhishVN published validation and test splits",
+    ]
+    return report
+
+
+def load_open_training_samples(
+    data_directory: Path,
+) -> tuple[list[URLSample], dict, dict]:
+    """Load verified training rows and quarantine ambiguous registrable domains."""
     manifest = load_open_manifest()
     phreshphish_path, _output_hash = acquire_phreshphish(data_directory, manifest)
     phishvn_path = acquire_phishvn(data_directory, manifest)
@@ -111,15 +129,7 @@ def audit_open_sources(data_directory: Path) -> dict:
     )
     pre_adjudication = audit_corpus(samples)
     retained_samples, quarantine = quarantine_cross_label_groups(samples)
-    report = audit_corpus(retained_samples)
-    report["pre_adjudication"] = pre_adjudication
-    report["quarantine"] = quarantine
-    report["audited_sources"] = ["phreshphish-v1.0.1", "phishvn-v3.1.0"]
-    report["preserved_holdouts"] = [
-        "PhreshPhish published test split",
-        "PhishVN published validation and test splits",
-    ]
-    return report
+    return retained_samples, pre_adjudication, quarantine
 
 
 def main() -> None:

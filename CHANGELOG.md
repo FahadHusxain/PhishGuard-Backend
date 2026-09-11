@@ -24,6 +24,8 @@ approved for merge.
   explicit candidate-source terms and ground-truth constraints.
 - A checksum-locked, URL-only open-corpus acquisition path using PhreshPhish
   and verified PhishVN training rows, with automatic ambiguous-domain quarantine.
+- A reproducible v2 lexical baseline with domain-isolated balanced splits,
+  dual high-precision thresholds, and an explicit UNKNOWN decision region.
 
 ### Changed
 

@@ -64,3 +64,26 @@ class LexicalCandidate:
 
     def predict(self, url: str) -> bool:
         return self.predict_probability(url) >= self.threshold
+
+
+class V2LexicalCandidate(LexicalCandidate):
+    """Three-way v2 scorer with independently frozen SAFE/PHISHING thresholds."""
+
+    def __init__(self, model_path: Path):
+        super().__init__(model_path)
+        try:
+            with np.load(model_path, allow_pickle=False) as artifact:
+                self.lower_threshold = float(artifact["lower_threshold"].item())
+                self.upper_threshold = float(artifact["upper_threshold"].item())
+        except (OSError, KeyError, ValueError) as exc:
+            raise CandidateModelError("The v2 lexical thresholds are invalid.") from exc
+        if not 0.0 <= self.lower_threshold < self.upper_threshold <= 1.0:
+            raise CandidateModelError("The v2 lexical thresholds overlap.")
+
+    def classify(self, url: str) -> str:
+        probability = self.predict_probability(url)
+        if probability <= self.lower_threshold:
+            return "SAFE"
+        if probability >= self.upper_threshold:
+            return "PHISHING"
+        return "UNKNOWN"

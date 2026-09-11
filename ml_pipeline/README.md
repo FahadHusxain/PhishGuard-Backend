@@ -69,3 +69,20 @@ python -m ml_pipeline.audit_open
 The PhreshPhish acquisition projects URL metadata only, avoiding its 36.6 GB
 HTML payload. Raw/projected data stays under ignored `.ml-data/`. The committed
 `OPEN_CORPUS_READINESS.json` contains counts and gate outcomes only.
+
+Fit and calibrate the isolated v2 lexical candidate:
+
+```bash
+python -m ml_pipeline.train_open
+```
+
+This command revalidates the corpus gate, removes canonical duplicates, and
+assigns every registrable domain to exactly one deterministic, label/source-
+balanced fit, calibration, or development partition. It freezes independent
+SAFE and PHISHING thresholds at a 99.5% calibration precision floor and leaves
+the interval between them as UNKNOWN. It never reads the published holdouts.
+
+The resulting `url_lexical_candidate_v2.npz` is a non-executable NumPy archive.
+`V2_CANDIDATE_DEVELOPMENT.json` contains aggregate development evidence only;
+the candidate remains disconnected from production until all promotion gates
+pass.

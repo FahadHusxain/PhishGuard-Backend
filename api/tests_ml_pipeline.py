@@ -13,7 +13,11 @@ from django.test import SimpleTestCase
 
 from ml_pipeline import acquire_open_corpus, audit_current, audit_open
 from ml_pipeline.audit_current import _phishtank_samples
-from ml_pipeline.candidate import CandidateModelError, LexicalCandidate
+from ml_pipeline.candidate import (
+    CandidateModelError,
+    LexicalCandidate,
+    V2LexicalCandidate,
+)
 from ml_pipeline.corpus import (
     CorpusReadinessError,
     CorpusValidationError,
@@ -42,6 +46,12 @@ from ml_pipeline.train import (
     _load_splits,
     _split_for_group,
     _write_deterministic_npz,
+)
+from ml_pipeline.train_open import (
+    _deduplicated_splits,
+    _lower_threshold,
+    _triage_metrics,
+    _upper_threshold,
 )
 
 
@@ -216,6 +226,45 @@ class DatasetPipelineTests(SimpleTestCase):
         self.assertEqual(report["quarantined_groups"], 1)
         self.assertEqual(report["quarantined_rows"], 2)
         self.assertEqual(report["invalid_rows"], 1)
+
+    def test_v2_training_splits_are_deduplicated_and_group_isolated(self):
+        samples = [
+            URLSample("https://a.example.com/path", 0, "source-a", None, True),
+            URLSample("https://a.example.com/path", 0, "source-b", None, True),
+            URLSample("https://b.example.com/other", 0, "source-a", None, True),
+            URLSample("https://malicious.test/login", 1, "source-a", None, True),
+        ]
+
+        splits, corpus = _deduplicated_splits(samples)
+
+        self.assertEqual(corpus["unique_urls"], 3)
+        self.assertEqual(corpus["duplicate_rows_removed"], 1)
+        containing_splits = [
+            name for name, split in splits.items() if "example.com" in split["groups"]
+        ]
+        self.assertEqual(len(containing_splits), 1)
+
+    def test_v2_dual_thresholds_preserve_precision_and_unknown_region(self):
+        labels = np.asarray([0, 0, 0, 1, 1, 1], dtype=np.int8)
+        probabilities = np.asarray([0.01, 0.02, 0.4, 0.6, 0.98, 0.99])
+
+        lower = _lower_threshold(labels, probabilities)
+        upper = _upper_threshold(labels, probabilities)
+        metrics = _triage_metrics(labels, probabilities, lower, upper)
+
+        self.assertEqual(lower, 0.4)
+        self.assertEqual(upper, 0.6)
+        self.assertEqual(metrics["safe_precision"], 1.0)
+        self.assertEqual(metrics["phishing_precision"], 1.0)
+        self.assertLess(lower, upper)
+
+    def test_v2_thresholds_do_not_split_tied_probability_groups(self):
+        tied_probabilities = np.asarray([0.5, 0.5])
+
+        with self.assertRaises(RuntimeError):
+            _lower_threshold(np.asarray([0, 1], dtype=np.int8), tied_probabilities)
+        with self.assertRaises(RuntimeError):
+            _upper_threshold(np.asarray([1, 0], dtype=np.int8), tied_probabilities)
 
     def test_open_corpus_phreshphish_parser_preserves_labels_and_dates(self):
         content = (
@@ -462,6 +511,29 @@ class DatasetPipelineTests(SimpleTestCase):
         self.assertEqual(external_report["model_sha256"], report["model_sha256"])
         self.assertFalse(external_report["metric_gate_passed"])
 
+    def test_v2_candidate_artifact_matches_frozen_development_report(self):
+        model_path = settings.BASE_DIR / "ml_models" / "url_lexical_candidate_v2.npz"
+        report = json.loads(
+            (
+                settings.BASE_DIR / "ml_models" / "V2_CANDIDATE_DEVELOPMENT.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(sha256_file(model_path), report["model_sha256"])
+        self.assertEqual(report["pipeline_version"], 2)
+        self.assertEqual(report["candidate_status"], "NOT_PROMOTED")
+        self.assertFalse(report["final_holdouts_opened"])
+        self.assertTrue(all(not passed for passed in report["promotion_gate"].values()))
+        for split in report["splits"].values():
+            self.assertEqual(split["rows"], split["benign"] + split["phishing"])
+
+        candidate = V2LexicalCandidate(model_path)
+        self.assertLess(candidate.lower_threshold, candidate.upper_threshold)
+        self.assertIn(
+            candidate.classify("https://example.com/login"),
+            {"SAFE", "UNKNOWN", "PHISHING"},
+        )
+
     def test_candidate_archive_writer_is_byte_reproducible(self):
         arrays = {
             "weights": np.asarray([[1.0, 2.0]], dtype=np.float32),
@@ -492,6 +564,32 @@ class DatasetPipelineTests(SimpleTestCase):
 
             with self.assertRaises(CandidateModelError):
                 LexicalCandidate(model_path)
+
+    def test_v2_candidate_returns_safe_unknown_and_phishing(self):
+        arrays = {
+            "calibration_coefficient": np.asarray([[1.0]], dtype=np.float32),
+            "calibration_intercept": np.asarray([0.0], dtype=np.float32),
+            "coefficients": np.zeros((1, 4), dtype=np.float32),
+            "feature_count": np.asarray([4], dtype=np.int64),
+            "intercept": np.asarray([0.0], dtype=np.float32),
+            "lower_threshold": np.asarray([0.2], dtype=np.float32),
+            "ngram_range": np.asarray([3, 5], dtype=np.int64),
+            "threshold": np.asarray([0.8], dtype=np.float32),
+            "upper_threshold": np.asarray([0.8], dtype=np.float32),
+        }
+        with TemporaryDirectory() as temporary_directory:
+            model_path = Path(temporary_directory) / "v2.npz"
+            _write_deterministic_npz(model_path, arrays)
+            candidate = V2LexicalCandidate(model_path)
+
+            with patch.object(
+                candidate, "predict_probability", side_effect=[0.1, 0.5, 0.9]
+            ):
+                decisions = [
+                    candidate.classify("https://example.test") for _ in range(3)
+                ]
+
+        self.assertEqual(decisions, ["SAFE", "UNKNOWN", "PHISHING"])
 
     def test_external_source_hash_and_parsers(self):
         with TemporaryDirectory() as temporary_directory:

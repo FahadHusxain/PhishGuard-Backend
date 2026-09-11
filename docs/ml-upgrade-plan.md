@@ -137,3 +137,17 @@ documentation in reconstructable form.
 The committed aggregate readiness report records 462,644 unique retained URLs
 after 4,446 invalid rows and all 340 cross-label domains were quarantined. It
 contains no reconstructable source URLs.
+
+## V2 lexical baseline
+
+The first replacement candidate is trained only from the selected open-corpus
+training rows. A deterministic, label/source-balanced group assignment keeps
+every registrable domain inside exactly one 70/15/15 fit, calibration, or
+development partition. Character 3-5 gram hashing and a linear classifier keep
+the artifact compact, inspectable, and safe to load without pickle.
+
+Two thresholds were frozen on calibration data at a 99.5% precision floor. On
+the internal development partition, SAFE precision is 99.45%, PHISHING
+precision is 99.57%, and decisive coverage is 67.02%; the remaining 32.98% is
+UNKNOWN. These are development results, not a production claim. The candidate
+is still disabled and the published holdout labels remain unopened.
