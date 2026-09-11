@@ -48,6 +48,15 @@ from .throttles import (
 )
 from .views import get_ip_location
 
+TEST_STATIC_STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.InMemoryStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
 
 class EnvironmentSettingsTests(SimpleTestCase):
     def test_env_bool_uses_default_when_variable_is_missing(self):
@@ -147,7 +156,7 @@ class OperationalEndpointTests(APITestCase):
 
         self.assertEqual(response["X-Request-ID"], request_id)
 
-    @override_settings(DEBUG=True)
+    @override_settings(DEBUG=True, STORAGES=TEST_STATIC_STORAGES)
     def test_browser_security_headers_are_applied(self):
         response = self.client.get(reverse("home"))
 
@@ -163,7 +172,7 @@ class OperationalEndpointTests(APITestCase):
         )
         self.assertEqual(response["Referrer-Policy"], "same-origin")
 
-    @override_settings(DEBUG=True)
+    @override_settings(DEBUG=True, STORAGES=TEST_STATIC_STORAGES)
     def test_dashboard_uses_only_self_hosted_code_and_styles(self):
         response = self.client.get(reverse("home"))
 
@@ -175,7 +184,7 @@ class OperationalEndpointTests(APITestCase):
         self.assertNotContains(response, "<style>")
         self.assertNotContains(response, "<script>")
 
-    @override_settings(DEBUG=True)
+    @override_settings(DEBUG=True, STORAGES=TEST_STATIC_STORAGES)
     def test_api_documentation_uses_self_hosted_assets_with_scoped_csp(self):
         response = self.client.get(reverse("api_docs"))
 
@@ -267,6 +276,7 @@ class APIContractTests(APITestCase):
             "#/components/schemas/WhitelistSubmissionRequest",
         )
 
+    @override_settings(STORAGES=TEST_STATIC_STORAGES)
     def test_interactive_api_documentation_is_available(self):
         response = self.client.get(reverse("api_docs"))
 
