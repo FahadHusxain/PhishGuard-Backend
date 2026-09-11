@@ -11,7 +11,7 @@ import numpy as np
 from django.conf import settings
 from django.test import SimpleTestCase
 
-from ml_pipeline import audit_current
+from ml_pipeline import acquire_open_corpus, audit_current, audit_open
 from ml_pipeline.audit_current import _phishtank_samples
 from ml_pipeline.candidate import CandidateModelError, LexicalCandidate
 from ml_pipeline.corpus import (
@@ -20,6 +20,7 @@ from ml_pipeline.corpus import (
     URLSample,
     audit_corpus,
     normalize_corpus_url,
+    quarantine_cross_label_groups,
     require_training_ready,
 )
 from ml_pipeline.dataset import (
@@ -45,7 +46,7 @@ from ml_pipeline.train import (
 
 
 class DatasetPipelineTests(SimpleTestCase):
-    def test_v2_source_registry_records_current_training_blockers(self):
+    def test_v2_source_registry_records_training_and_promotion_state(self):
         registry = json.loads(
             (settings.BASE_DIR / "ml_pipeline" / "source_registry.json").read_text(
                 encoding="utf-8"
@@ -53,8 +54,9 @@ class DatasetPipelineTests(SimpleTestCase):
         )
 
         self.assertEqual(registry["contract_version"], 2)
-        self.assertFalse(registry["training_ready"])
-        self.assertTrue(registry["blocking_requirements"])
+        self.assertTrue(registry["training_ready"])
+        self.assertFalse(registry["promotion_ready"])
+        self.assertTrue(registry["promotion_blockers"])
         self.assertEqual(registry["sources"]["phiusiil"]["license"], "CC BY 4.0")
         self.assertTrue(registry["sources"]["phiusiil"]["training_rights_confirmed"])
         self.assertFalse(
@@ -62,6 +64,21 @@ class DatasetPipelineTests(SimpleTestCase):
                 "training_rights_confirmed"
             ]
         )
+        self.assertTrue(
+            registry["sources"]["phreshphish_v1.0.1_train"]["training_rights_confirmed"]
+        )
+
+    def test_open_corpus_manifest_is_immutable_and_url_only(self):
+        manifest = acquire_open_corpus.load_open_manifest()
+
+        self.assertRegex(manifest["phreshphish"]["revision"], r"^[0-9a-f]{40}$")
+        self.assertEqual(
+            manifest["phreshphish"]["projected_columns"],
+            ["sha256", "url", "label", "date"],
+        )
+        self.assertNotIn("html", manifest["phreshphish"]["projected_columns"])
+        self.assertRegex(manifest["phreshphish"]["output_sha256"], r"^[0-9a-f]{64}$")
+        self.assertRegex(manifest["phishvn"]["archive_sha256"], r"^[0-9a-f]{64}$")
 
     def test_v2_corpus_normalization_is_stable_and_offline(self):
         normalized, group = normalize_corpus_url(
@@ -184,6 +201,79 @@ class DatasetPipelineTests(SimpleTestCase):
 
         self.assertEqual(report["conflicting_urls"], 1)
         self.assertEqual(report["retained_urls"], 0)
+
+    def test_v2_corpus_quarantines_entire_cross_label_domains(self):
+        samples = [
+            URLSample("https://example.com/safe", 0, "source-a", None, True),
+            URLSample("https://sub.example.com/phish", 1, "source-b", None, True),
+            URLSample("not-a-url", 1, "source-b", None, True),
+            URLSample("https://retained.org/", 0, "source-a", None, True),
+        ]
+
+        retained, report = quarantine_cross_label_groups(samples)
+
+        self.assertEqual([sample.url for sample in retained], ["https://retained.org/"])
+        self.assertEqual(report["quarantined_groups"], 1)
+        self.assertEqual(report["quarantined_rows"], 2)
+        self.assertEqual(report["invalid_rows"], 1)
+
+    def test_open_corpus_phreshphish_parser_preserves_labels_and_dates(self):
+        content = (
+            "sha256,url,label,date\n"
+            f"{'a' * 64},https://safe.example/path,benign,2025-01-02\n"
+            f"{'b' * 64},https://bad.test/login,phish,2025-01-03\n"
+        )
+        with TemporaryDirectory() as temporary_directory:
+            path = Path(temporary_directory) / "projected.csv"
+            path.write_text(content, encoding="utf-8")
+
+            samples = list(audit_open._phreshphish_samples(path))
+
+        self.assertEqual([sample.label for sample in samples], [0, 1])
+        self.assertEqual(samples[0].observed_at, datetime(2025, 1, 2, tzinfo=UTC))
+        self.assertTrue(all(sample.representation == "full_url" for sample in samples))
+
+    def test_open_corpus_phishvn_parser_filters_holdouts_and_bronze(self):
+        header = "label,tier,split,url_norm,collected_at\n"
+        content = (
+            header
+            + "benign,gold,train,https://safe.example/,02/01/2025\n"
+            + "phishing,bronze,train,https://bronze.test/,03/01/2025\n"
+            + "phishing,silver,test,https://holdout.test/,04/01/2025\n"
+        )
+        source_manifest = {
+            "eligible_tiers": ["gold", "silver"],
+            "eligible_splits": ["train"],
+            "csv_member": "data/dataset_url.csv",
+        }
+        with TemporaryDirectory() as temporary_directory:
+            path = Path(temporary_directory) / "phishvn.zip"
+            with zipfile.ZipFile(path, "w") as archive:
+                archive.writestr(source_manifest["csv_member"], content)
+
+            samples = list(audit_open._phishvn_samples(path, source_manifest))
+
+        self.assertEqual(len(samples), 1)
+        self.assertEqual(samples[0].source, "phishvn-v3.1.0")
+        self.assertEqual(samples[0].representation, "origin")
+
+    def test_projected_open_corpus_is_verified_without_network(self):
+        content = f"sha256,url,label,date\n{'a' * 64},https://safe.example,benign,2025-01-02\n"
+        with TemporaryDirectory() as temporary_directory:
+            path = Path(temporary_directory) / "projected.csv"
+            path.write_text(content, encoding="utf-8")
+            source = {
+                "local_filename": path.name,
+                "output_sha256": sha256_file(path),
+                "reported_rows": 1,
+            }
+
+            result_path, result_hash = acquire_open_corpus.acquire_phreshphish(
+                Path(temporary_directory), {"phreshphish": source}
+            )
+
+        self.assertEqual(result_path, path)
+        self.assertEqual(result_hash, source["output_sha256"])
 
     def test_v2_phishtank_parser_preserves_time_and_unconfirmed_rights(self):
         with TemporaryDirectory() as temporary_directory:

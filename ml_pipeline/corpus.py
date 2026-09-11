@@ -204,6 +204,36 @@ def audit_corpus(
     }
 
 
+def quarantine_cross_label_groups(
+    samples: Iterable[URLSample],
+) -> tuple[list[URLSample], dict]:
+    """Remove every registrable domain observed under both labels."""
+    valid_samples: list[tuple[URLSample, str]] = []
+    labels_by_group: dict[str, set[int]] = defaultdict(set)
+    invalid_rows = 0
+    for sample in samples:
+        try:
+            _normalized_url, group = normalize_corpus_url(sample.url)
+        except CorpusValidationError:
+            invalid_rows += 1
+            continue
+        valid_samples.append((sample, group))
+        labels_by_group[group].add(sample.label)
+
+    quarantined_groups = {
+        group for group, labels in labels_by_group.items() if len(labels) > 1
+    }
+    retained = [
+        sample for sample, group in valid_samples if group not in quarantined_groups
+    ]
+    return retained, {
+        "invalid_rows": invalid_rows,
+        "quarantined_groups": len(quarantined_groups),
+        "quarantined_rows": len(valid_samples) - len(retained),
+        "retained_rows": len(retained),
+    }
+
+
 def require_training_ready(report: dict) -> None:
     """Prevent training when minimum diversity and temporal gates fail."""
     failures = report.get("readiness_failures") or []

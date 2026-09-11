@@ -97,8 +97,10 @@ The source registry records the current evidence:
 - Tranco contains domains rather than verified benign full page URLs.
 - No future temporal snapshot exists yet.
 
-Accordingly, the v2 corpus is intentionally marked training_ready false. The
-next safe step is source licensing and acquisition, not model fitting.
+The legacy holdings remain unsuitable by themselves. The separately pinned
+open corpus now passes the v2 training gate after malformed URLs and every
+cross-label registrable domain are quarantined. Model promotion remains blocked
+until untouched holdout evaluation and shadow-mode review succeed.
 
 ## Candidate source decisions
 
@@ -120,3 +122,18 @@ quality:
 No raw third-party feed will be committed to Git. OpenPhish data, if approved,
 must remain local and must not appear in test fixtures, reports, or model
 documentation in reconstructable form.
+
+## Selected open corpus
+
+- PhreshPhish v1.0.1 is pinned to an immutable repository commit. Only its
+  published training shards and the `sha256`, `url`, `label`, and `date` columns
+  are projected locally; captured HTML is not downloaded.
+- PhishVN v3.1.0 is pinned by DOI, archive URL, byte size, and SHA-256. Only
+  gold/silver rows from its published training split are admitted. Because its
+  URLs are overwhelmingly synthesized origins, they are conservatively marked
+  as `origin`, not genuine full-page URLs.
+- The PhreshPhish test split and PhishVN validation/test splits remain untouched.
+
+The committed aggregate readiness report records 462,644 unique retained URLs
+after 4,446 invalid rows and all 340 cross-label domains were quarantined. It
+contains no reconstructable source URLs.

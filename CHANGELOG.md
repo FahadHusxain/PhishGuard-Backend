@@ -22,6 +22,8 @@ approved for merge.
   unlicensed, source-confounded, representation-mismatched, or undated data.
 - A reproducible aggregate readiness audit for locally held ML sources, with
   explicit candidate-source terms and ground-truth constraints.
+- A checksum-locked, URL-only open-corpus acquisition path using PhreshPhish
+  and verified PhishVN training rows, with automatic ambiguous-domain quarantine.
 
 ### Changed
 

@@ -1,0 +1,4 @@
+-r requirements.txt
+
+duckdb==1.5.5
+scikit-learn==1.9.1

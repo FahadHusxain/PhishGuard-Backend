@@ -1,6 +1,7 @@
 {
   "contract_version": 2,
-  "training_ready": false,
+  "training_ready": true,
+  "promotion_ready": false,
   "sources": {
     "phiusiil": {
       "label_scope": "benign and phishing",
@@ -28,6 +29,24 @@
       "training_rights_confirmed": false,
       "approved_use": "frozen evaluation only; not page-level ground truth",
       "manifest": "external_evaluation_manifest.json"
+    },
+    "phreshphish_v1.0.1_train": {
+      "label_scope": "benign and phishing",
+      "representation": "full_url",
+      "timestamp_available": true,
+      "license": "CC BY 4.0",
+      "training_rights_confirmed": true,
+      "approved_use": "v2 candidate training; published test split excluded",
+      "manifest": "open_corpus_manifest.json"
+    },
+    "phishvn_v3.1.0_verified_train": {
+      "label_scope": "benign and phishing",
+      "representation": "origin",
+      "timestamp_available": "partial",
+      "license": "CC BY 4.0",
+      "training_rights_confirmed": true,
+      "approved_use": "v2 source-diversity training; gold/silver train rows only",
+      "manifest": "open_corpus_manifest.json"
     }
   },
   "candidate_sources": {
@@ -48,10 +67,9 @@
       "terms_url": "https://commoncrawl.org/terms-of-use"
     }
   },
-  "blocking_requirements": [
-    "A second licensed phishing source with observation timestamps",
-    "A second licensed benign source containing genuine full URLs",
-    "At least 80% timestamp coverage for both labels",
-    "A future untouched temporal and cross-source test snapshot"
+  "promotion_blockers": [
+    "Fit and calibrate candidates without accessing published holdout labels",
+    "Evaluate once on untouched temporal and cross-source holdouts",
+    "Complete error-slice, latency, memory, and shadow-mode review"
   ]
 }

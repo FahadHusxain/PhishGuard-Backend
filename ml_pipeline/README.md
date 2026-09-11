@@ -57,3 +57,15 @@ python -m ml_pipeline.audit_current
 The generated `ml_models/CORPUS_READINESS.json` contains aggregate diagnostics
 only. A failed readiness result is expected until the documented source and
 licensing gaps are closed.
+
+Acquire the pinned open corpus and generate its aggregate readiness report:
+
+```bash
+python -m pip install -r requirements-ml.txt
+python -m ml_pipeline.acquire_open_corpus
+python -m ml_pipeline.audit_open
+```
+
+The PhreshPhish acquisition projects URL metadata only, avoiding its 36.6 GB
+HTML payload. Raw/projected data stays under ignored `.ml-data/`. The committed
+`OPEN_CORPUS_READINESS.json` contains counts and gate outcomes only.
