@@ -20,6 +20,8 @@ approved for merge.
   release documentation.
 - A provenance-aware version 2 ML corpus contract that blocks training on
   unlicensed, source-confounded, representation-mismatched, or undated data.
+- A reproducible aggregate readiness audit for locally held ML sources, with
+  explicit candidate-source terms and ground-truth constraints.
 
 ### Changed
 

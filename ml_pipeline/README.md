@@ -46,3 +46,14 @@ The current source status is machine-readable in `source_registry.json`. It is
 deliberately marked not ready. See the
 [ML upgrade plan](../docs/ml-upgrade-plan.md) for acquisition, modeling,
 calibration, and promotion stages.
+
+With the raw snapshots present locally, audit the eligible full-URL holdings
+without training a model:
+
+```bash
+python -m ml_pipeline.audit_current
+```
+
+The generated `ml_models/CORPUS_READINESS.json` contains aggregate diagnostics
+only. A failed readiness result is expected until the documented source and
+licensing gaps are closed.

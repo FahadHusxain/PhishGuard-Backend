@@ -11,6 +11,8 @@ import numpy as np
 from django.conf import settings
 from django.test import SimpleTestCase
 
+from ml_pipeline import audit_current
+from ml_pipeline.audit_current import _phishtank_samples
 from ml_pipeline.candidate import CandidateModelError, LexicalCandidate
 from ml_pipeline.corpus import (
     CorpusReadinessError,
@@ -54,6 +56,12 @@ class DatasetPipelineTests(SimpleTestCase):
         self.assertFalse(registry["training_ready"])
         self.assertTrue(registry["blocking_requirements"])
         self.assertEqual(registry["sources"]["phiusiil"]["license"], "CC BY 4.0")
+        self.assertTrue(registry["sources"]["phiusiil"]["training_rights_confirmed"])
+        self.assertFalse(
+            registry["sources"]["phishtank_snapshot_2026_09_10"][
+                "training_rights_confirmed"
+            ]
+        )
 
     def test_v2_corpus_normalization_is_stable_and_offline(self):
         normalized, group = normalize_corpus_url(
@@ -176,6 +184,121 @@ class DatasetPipelineTests(SimpleTestCase):
 
         self.assertEqual(report["conflicting_urls"], 1)
         self.assertEqual(report["retained_urls"], 0)
+
+    def test_v2_phishtank_parser_preserves_time_and_unconfirmed_rights(self):
+        with TemporaryDirectory() as temporary_directory:
+            path = Path(temporary_directory) / "phishtank.csv.bz2"
+            with bz2.open(path, "wt", encoding="utf-8", newline="") as source:
+                source.write(
+                    "url,verification_time,verified\n"
+                    "https://bad.example/login,2026-09-10T12:30:00+00:00,yes\n"
+                )
+
+            samples = list(_phishtank_samples(path, license_confirmed=False))
+
+        self.assertEqual(len(samples), 1)
+        self.assertEqual(samples[0].source, "phishtank-2026-09-10")
+        self.assertEqual(samples[0].observed_at.tzinfo, UTC)
+        self.assertFalse(samples[0].license_confirmed)
+
+    def test_v2_phishtank_parser_rejects_unverified_rows(self):
+        with TemporaryDirectory() as temporary_directory:
+            path = Path(temporary_directory) / "phishtank.csv.bz2"
+            with bz2.open(path, "wt", encoding="utf-8", newline="") as source:
+                source.write(
+                    "url,verification_time,verified\n"
+                    "https://unknown.example/,2026-09-10T12:30:00+00:00,no\n"
+                )
+
+            with self.assertRaises(DatasetIntegrityError):
+                list(_phishtank_samples(path, license_confirmed=False))
+
+    def test_v2_current_audit_verifies_external_snapshot_hash(self):
+        with TemporaryDirectory() as temporary_directory:
+            path = Path(temporary_directory) / "source.bin"
+            path.write_bytes(b"verified snapshot")
+            source = {"local_filename": path.name, "sha256": sha256_file(path)}
+
+            self.assertEqual(
+                audit_current._verified_external_path(
+                    Path(temporary_directory), source
+                ),
+                path,
+            )
+            source["sha256"] = "0" * 64
+            with self.assertRaises(DatasetIntegrityError):
+                audit_current._verified_external_path(Path(temporary_directory), source)
+
+    def test_v2_current_audit_reports_only_eligible_full_url_sources(self):
+        observed_at = datetime(2026, 1, 1, tzinfo=UTC)
+        registry = {
+            "sources": {
+                "phiusiil": {"training_rights_confirmed": True},
+                "phishtank_snapshot_2026_09_10": {"training_rights_confirmed": False},
+            }
+        }
+        external_manifest = {"sources": {"phishing": {}}}
+        with (
+            patch(
+                "ml_pipeline.audit_current._load_json",
+                side_effect=[external_manifest, registry],
+            ),
+            patch(
+                "ml_pipeline.audit_current.acquire_archive",
+                return_value=Path("phiusiil.zip"),
+            ),
+            patch(
+                "ml_pipeline.audit_current._verified_external_path",
+                return_value=Path("phishtank.csv.bz2"),
+            ),
+            patch(
+                "ml_pipeline.audit_current._phiusiil_samples",
+                return_value=iter(
+                    [URLSample("https://safe.example/", 0, "phiusiil", None, True)]
+                ),
+            ),
+            patch(
+                "ml_pipeline.audit_current._phishtank_samples",
+                return_value=iter(
+                    [
+                        URLSample(
+                            "https://bad.test/",
+                            1,
+                            "phishtank-2026-09-10",
+                            observed_at,
+                            False,
+                        )
+                    ]
+                ),
+            ),
+        ):
+            report = audit_current.audit_current_sources(Path(".ml-data"))
+
+        self.assertFalse(report["training_ready"])
+        self.assertEqual(
+            report["excluded_sources"],
+            {"tranco-2026-09-10": "bare domains are not genuine benign full URLs"},
+        )
+
+    def test_v2_current_audit_cli_writes_aggregate_report(self):
+        with TemporaryDirectory() as temporary_directory:
+            report_path = Path(temporary_directory) / "nested" / "report.json"
+            with (
+                patch(
+                    "sys.argv",
+                    ["audit_current", "--report", str(report_path)],
+                ),
+                patch(
+                    "ml_pipeline.audit_current.audit_current_sources",
+                    return_value={"training_ready": False},
+                ),
+                patch("builtins.print"),
+            ):
+                audit_current.main()
+
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(report, {"training_ready": False})
 
     def test_committed_manifest_has_required_provenance(self):
         manifest = load_manifest()

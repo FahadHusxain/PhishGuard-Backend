@@ -99,3 +99,24 @@ The source registry records the current evidence:
 
 Accordingly, the v2 corpus is intentionally marked training_ready false. The
 next safe step is source licensing and acquisition, not model fitting.
+
+## Candidate source decisions
+
+The source registry distinguishes availability from permission and label
+quality:
+
+- [OpenPhish academic access](https://www.openphish.com/academic_use.html) is a
+  strong candidate for a second timestamped phishing source, but requires an
+  approved university application, attribution, non-commercial use, and strict
+  non-redistribution controls.
+- [PhishTank's developer feed](https://phishtank.org/developer_info.php) exposes
+  verified full URLs and verification timestamps. It remains evaluation-only
+  until written terms clearly cover model training and artifact distribution.
+- [Common Crawl's URL Index](https://commoncrawl.org/url-index) provides crawl
+  observations with full URLs, but crawl presence is not a benign verdict.
+  Its [terms](https://commoncrawl.org/terms-of-use) also require a separate
+  rights assessment. It cannot be admitted merely to make the metrics pass.
+
+No raw third-party feed will be committed to Git. OpenPhish data, if approved,
+must remain local and must not appear in test fixtures, reports, or model
+documentation in reconstructable form.

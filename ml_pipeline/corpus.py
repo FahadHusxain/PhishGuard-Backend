@@ -2,6 +2,7 @@
 
 import re
 from collections import Counter, defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal
@@ -83,7 +84,7 @@ def normalize_corpus_url(url: str) -> tuple[str, str]:
 
 
 def audit_corpus(
-    samples: list[URLSample],
+    samples: Iterable[URLSample],
     *,
     min_samples_per_label: int = DEFAULT_MIN_SAMPLES_PER_LABEL,
 ) -> dict:
@@ -100,8 +101,10 @@ def audit_corpus(
     dated_by_label = Counter()
     groups_by_label: dict[int, set[str]] = defaultdict(set)
     invalid_rows = 0
+    input_rows = 0
 
     for sample in samples:
+        input_rows += 1
         try:
             normalized_url, group = normalize_corpus_url(sample.url)
         except CorpusValidationError:
@@ -165,7 +168,7 @@ def audit_corpus(
     return {
         "contract_version": 2,
         "min_samples_per_label": min_samples_per_label,
-        "input_rows": len(samples),
+        "input_rows": input_rows,
         "unique_urls": len(labels_by_url),
         "retained_urls": len(retained),
         "invalid_rows": invalid_rows,

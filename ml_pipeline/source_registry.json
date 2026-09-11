@@ -7,6 +7,7 @@
       "representation": "full_url",
       "timestamp_available": false,
       "license": "CC BY 4.0",
+      "training_rights_confirmed": true,
       "approved_use": "legacy baseline and future seed corpus",
       "manifest": "dataset_manifest.json"
     },
@@ -15,6 +16,7 @@
       "representation": "full_url",
       "timestamp_available": true,
       "license": "not recorded",
+      "training_rights_confirmed": false,
       "approved_use": "frozen evaluation only pending terms review",
       "manifest": "external_evaluation_manifest.json"
     },
@@ -23,8 +25,27 @@
       "representation": "domain",
       "timestamp_available": true,
       "license": "not recorded",
+      "training_rights_confirmed": false,
       "approved_use": "frozen evaluation only; not page-level ground truth",
       "manifest": "external_evaluation_manifest.json"
+    }
+  },
+  "candidate_sources": {
+    "openphish_academic": {
+      "label_scope": "phishing only",
+      "representation": "full_url",
+      "timestamp_available": true,
+      "training_rights_confirmed": false,
+      "status": "requires academic-program approval and non-redistribution controls",
+      "terms_url": "https://www.openphish.com/academic_use.html"
+    },
+    "common_crawl": {
+      "label_scope": "unlabeled web observations",
+      "representation": "full_url",
+      "timestamp_available": true,
+      "training_rights_confirmed": false,
+      "status": "usable only after a defensible benign-labeling and rights review",
+      "terms_url": "https://commoncrawl.org/terms-of-use"
     }
   },
   "blocking_requirements": [
