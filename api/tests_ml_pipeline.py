@@ -35,6 +35,7 @@ from ml_pipeline.dataset import (
     load_manifest,
     sha256_file,
 )
+from ml_pipeline.ensemble import ENSEMBLE_FEATURE_NAMES, EnsembleCandidate
 from ml_pipeline.evaluate_external import (
     _benign_urls,
     _phishing_urls,
@@ -64,6 +65,8 @@ from ml_pipeline.train import (
     _split_for_group,
     _write_deterministic_npz,
 )
+from ml_pipeline.train_ensemble import _gate as ensemble_gate
+from ml_pipeline.train_ensemble import _load_policy as load_ensemble_policy
 from ml_pipeline.train_open import (
     _deduplicated_splits,
     _lower_threshold,
@@ -74,6 +77,68 @@ from ml_pipeline.train_structural import _serialized_trees
 
 
 class DatasetPipelineTests(SimpleTestCase):
+    def test_ensemble_candidate_is_hash_bound_and_three_way(self):
+        lexical_path = settings.BASE_DIR / "ml_models" / "url_lexical_candidate_v2.npz"
+        structural_path = (
+            settings.BASE_DIR / "ml_models" / "url_structural_candidate_v3.npz"
+        )
+        arrays = {
+            "coefficients": np.asarray([[1.0, 1.0]]),
+            "intercept": np.asarray([0.0]),
+            "feature_names": np.asarray(ENSEMBLE_FEATURE_NAMES),
+            "lexical_sha256": np.asarray([sha256_file(lexical_path)]),
+            "structural_sha256": np.asarray([sha256_file(structural_path)]),
+            "lower_threshold": np.asarray([0.25]),
+            "upper_threshold": np.asarray([0.75]),
+        }
+        with TemporaryDirectory() as temporary_directory:
+            model_path = Path(temporary_directory) / "ensemble.npz"
+            _write_deterministic_npz(model_path, arrays)
+            candidate = EnsembleCandidate(model_path, lexical_path, structural_path)
+
+            with patch.object(
+                candidate, "predict_probability", side_effect=[0.1, 0.5, 0.9]
+            ):
+                decisions = [
+                    candidate.classify("https://example.test") for _ in range(3)
+                ]
+
+            arrays["lexical_sha256"] = np.asarray(["0" * 64])
+            _write_deterministic_npz(model_path, arrays)
+            with self.assertRaises(CandidateModelError):
+                EnsembleCandidate(model_path, lexical_path, structural_path)
+
+        self.assertEqual(decisions, ["SAFE", "UNKNOWN", "PHISHING"])
+
+    def test_ensemble_development_gate_supports_both_bound_directions(self):
+        metrics = {"precision": 0.99, "error_rate": 0.01}
+        requirements = {
+            "precision_at_least": 0.99,
+            "error_rate_at_most": 0.005,
+        }
+
+        results, failures = ensemble_gate(metrics, requirements)
+
+        self.assertTrue(results["precision_at_least"])
+        self.assertFalse(results["error_rate_at_most"])
+        self.assertEqual(failures, ["error_rate_at_most"])
+
+        with self.assertRaises(RuntimeError):
+            ensemble_gate(metrics, {"precision_equals": 0.99})
+
+    def test_ensemble_policy_loader_rejects_contract_drift(self):
+        source_path = settings.BASE_DIR / "ml_pipeline" / "v4_development_policy.json"
+        policy = load_ensemble_policy(source_path)
+        self.assertEqual(policy["candidate"], "v4_lexical_structural_ensemble")
+
+        policy["partition_contract"]["historical_holdouts_must_not_be_loaded"] = False
+        with TemporaryDirectory() as temporary_directory:
+            invalid_path = Path(temporary_directory) / "policy.json"
+            invalid_path.write_text(json.dumps(policy), encoding="utf-8")
+
+            with self.assertRaises(RuntimeError):
+                load_ensemble_policy(invalid_path)
+
     def test_structural_features_are_explicit_finite_and_scheme_neutral(self):
         urls = [
             "http://127.0.0.1:8080/login?verify=1",
@@ -191,6 +256,10 @@ class DatasetPipelineTests(SimpleTestCase):
             registry["candidate_evaluations"]["v3_structural"][
                 "opened_holdouts_used_for_training_or_selection"
             ]
+        )
+        self.assertEqual(
+            registry["candidate_evaluations"]["v4_ensemble"]["status"],
+            "development_selected_awaiting_future_holdout",
         )
 
     def test_open_corpus_manifest_is_immutable_and_url_only(self):
@@ -844,6 +913,34 @@ class DatasetPipelineTests(SimpleTestCase):
             0.99,
         )
         self.assertIn("new future temporal holdout", policy["if_gate_passes"])
+
+    def test_v4_ensemble_artifact_matches_selected_development_report(self):
+        model_path = settings.BASE_DIR / "ml_models" / "url_ensemble_candidate_v4.npz"
+        policy_path = settings.BASE_DIR / "ml_pipeline" / "v4_development_policy.json"
+        lexical_path = settings.BASE_DIR / "ml_models" / "url_lexical_candidate_v2.npz"
+        structural_path = (
+            settings.BASE_DIR / "ml_models" / "url_structural_candidate_v3.npz"
+        )
+        report_path = settings.BASE_DIR / "ml_models" / "V4_ENSEMBLE_DEVELOPMENT.json"
+        report_text = report_path.read_text(encoding="utf-8")
+        report = json.loads(report_text)
+
+        self.assertEqual(report["model_sha256"], sha256_file(model_path))
+        self.assertEqual(report["policy_sha256"], sha256_file(policy_path))
+        self.assertEqual(
+            report["candidate_status"],
+            "DEVELOPMENT_SELECTED_AWAITING_FUTURE_HOLDOUT",
+        )
+        self.assertTrue(report["development_gate"]["passed"])
+        self.assertTrue(all(report["development_gate"]["results"].values()))
+        self.assertFalse(report["opened_holdouts_used_for_training_or_selection"])
+        self.assertFalse(report["promotion_ready"])
+        self.assertNotRegex(report_text, r"https?://")
+
+        candidate = EnsembleCandidate(model_path, lexical_path, structural_path)
+        probability = candidate.predict_probability("https://example.com/login")
+        self.assertGreaterEqual(probability, 0)
+        self.assertLessEqual(probability, 1)
 
     def test_v2_holdout_report_preserves_failed_frozen_evaluation(self):
         report_path = settings.BASE_DIR / "ml_models" / "V2_HOLDOUT_EVALUATION.json"

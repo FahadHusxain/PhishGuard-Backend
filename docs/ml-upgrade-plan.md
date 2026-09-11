@@ -204,3 +204,20 @@ freezes the exact component hashes, raw-score stacking design, logistic meta
 model, data-partition contract, and numerical development gate. Failure of any
 required gate rejects v4 without scoring an opened historical holdout. Passing
 the gate would establish only development selection, not production readiness.
+
+## V4 ensemble development result
+
+V4 combines the frozen lexical and structural raw scores with the exact
+logistic meta-model declared in the policy. All six development gates passed.
+On 69,397 domain-isolated development URLs it reached ROC-AUC 0.992198, PR-AUC
+0.989797, SAFE precision 0.993273, PHISHING precision 0.994430, and decisive
+coverage 0.797960. Its false-safe and false-phishing rates were 0.007797 and
+0.002958. This improves on v2's internal PR-AUC and coverage while retaining
+high precision.
+
+V4 is **development-selected, not production-ready**. These sources and this
+development partition are no longer unbiased evidence. The historical v2
+holdouts are also prohibited because their results have been opened. The next
+scientific step is to acquire and checksum a genuinely future temporal snapshot,
+freeze a v4 evaluation policy before viewing its labels, then evaluate once
+without threshold changes. Shadow-mode review remains required afterward.

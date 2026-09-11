@@ -48,6 +48,7 @@ recall, F1, ROC-AUC, PR-AUC, calibration, false-positive analysis, and tests
 against obfuscated and internationalized URLs.
 
 Reproducible replacement experiments now exist separately; see
-`LEXICAL_MODEL_CARD.md` and `STRUCTURAL_MODEL_CARD.md`. Both candidate artifacts
-remain disabled; the lexical model failed its frozen holdout gate and the
-structural model was rejected on development evidence.
+`LEXICAL_MODEL_CARD.md`, `STRUCTURAL_MODEL_CARD.md`, and
+`ENSEMBLE_MODEL_CARD.md`. All candidate artifacts remain disabled. The lexical
+model failed its frozen holdout gate, the structural model was rejected on
+development evidence, and the v4 ensemble awaits a new future temporal holdout.

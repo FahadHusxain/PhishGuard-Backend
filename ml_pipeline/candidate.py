@@ -52,10 +52,14 @@ class LexicalCandidate:
     def predict_probability(self, url: str) -> float:
         return float(self.predict_probabilities([url])[0])
 
-    def predict_probabilities(self, urls: list[str]) -> np.ndarray:
+    def decision_function(self, urls: list[str]) -> np.ndarray:
         features = self.vectorizer.transform(urls)
         raw_scores = np.asarray(features @ self.coefficients.T).ravel()
         raw_scores += self.intercept.item()
+        return raw_scores
+
+    def predict_probabilities(self, urls: list[str]) -> np.ndarray:
+        raw_scores = self.decision_function(urls)
         calibrated_logits = (
             self.calibration_coefficient.item() * raw_scores
             + self.calibration_intercept.item()

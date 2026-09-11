@@ -113,3 +113,15 @@ scikit-learn's native decisions. The v3 candidate is rejected by development
 evidence: it missed the existing precision floor and underperformed v2 on all
 primary internal comparison metrics. Its artifact and aggregate report remain
 disconnected from production for reproducibility.
+
+Train the policy-bound v4 ensemble:
+
+```bash
+python -m ml_pipeline.train_ensemble
+```
+
+The trainer verifies the policy, corpus, and exact component hashes before it
+stacks the lexical and structural raw scores. V4 passed every pre-registered
+development gate and improved PR-AUC and decisive coverage over v2. It remains
+an offline candidate: opened historical holdouts are prohibited, and a new
+future temporal holdout plus shadow review are required before promotion.

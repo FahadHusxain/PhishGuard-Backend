@@ -79,11 +79,17 @@
       "model_sha256": "25bf55bb8874378837ff85412ff6e0cee8f0754bfe643e7c0a52d171eabf66aa",
       "opened_holdouts_used_for_training_or_selection": false,
       "report": "../ml_models/V3_STRUCTURAL_DEVELOPMENT.json"
+    },
+    "v4_ensemble": {
+      "status": "development_selected_awaiting_future_holdout",
+      "model_sha256": "ecfad83fdb02552e264f609bc17992bdd95951901cd65919115a36400249cbc2",
+      "opened_holdouts_used_for_training_or_selection": false,
+      "report": "../ml_models/V4_ENSEMBLE_DEVELOPMENT.json"
     }
   },
   "promotion_blockers": [
-    "Develop the pre-planned ensemble or another materially different candidate without retuning against opened holdouts",
-    "Reserve a future temporal snapshot for unbiased final promotion evidence",
+    "Acquire and freeze a genuinely future temporal snapshot for unbiased v4 promotion evidence",
+    "Pre-register the v4 final evaluation policy before opening the new snapshot labels",
     "Complete shadow-mode review before any production integration"
   ]
 }

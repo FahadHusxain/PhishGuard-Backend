@@ -34,6 +34,8 @@ approved for merge.
   native/portable inference parity and a documented development rejection.
 - A pre-registered v4 ensemble-development policy bound to exact component
   hashes, partition isolation, and a no-historical-holdout rule.
+- A development-selected v4 lexical/structural ensemble with safe hash-bound
+  artifacts, portable inference parity, and an explicit future-data blocker.
 
 ### Changed
 
