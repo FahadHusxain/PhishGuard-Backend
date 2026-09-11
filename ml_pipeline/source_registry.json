@@ -1,0 +1,36 @@
+{
+  "contract_version": 2,
+  "training_ready": false,
+  "sources": {
+    "phiusiil": {
+      "label_scope": "benign and phishing",
+      "representation": "full_url",
+      "timestamp_available": false,
+      "license": "CC BY 4.0",
+      "approved_use": "legacy baseline and future seed corpus",
+      "manifest": "dataset_manifest.json"
+    },
+    "phishtank_snapshot_2026_09_10": {
+      "label_scope": "phishing only",
+      "representation": "full_url",
+      "timestamp_available": true,
+      "license": "not recorded",
+      "approved_use": "frozen evaluation only pending terms review",
+      "manifest": "external_evaluation_manifest.json"
+    },
+    "tranco_snapshot_2026_09_10": {
+      "label_scope": "benign proxy only",
+      "representation": "domain",
+      "timestamp_available": true,
+      "license": "not recorded",
+      "approved_use": "frozen evaluation only; not page-level ground truth",
+      "manifest": "external_evaluation_manifest.json"
+    }
+  },
+  "blocking_requirements": [
+    "A second licensed phishing source with observation timestamps",
+    "A second licensed benign source containing genuine full URLs",
+    "At least 80% timestamp coverage for both labels",
+    "A future untouched temporal and cross-source test snapshot"
+  ]
+}

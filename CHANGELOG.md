@@ -18,6 +18,8 @@ approved for merge.
 - Non-root production container and health-gated PostgreSQL/Redis Compose stack.
 - Backup/restore tooling plus architecture, threat, testing, operations, and
   release documentation.
+- A provenance-aware version 2 ML corpus contract that blocks training on
+  unlicensed, source-confounded, representation-mismatched, or undated data.
 
 ### Changed
 

@@ -1,6 +1,7 @@
 import bz2
 import json
 import zipfile
+from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -11,6 +12,14 @@ from django.conf import settings
 from django.test import SimpleTestCase
 
 from ml_pipeline.candidate import CandidateModelError, LexicalCandidate
+from ml_pipeline.corpus import (
+    CorpusReadinessError,
+    CorpusValidationError,
+    URLSample,
+    audit_corpus,
+    normalize_corpus_url,
+    require_training_ready,
+)
 from ml_pipeline.dataset import (
     DatasetIntegrityError,
     acquire_archive,
@@ -34,6 +43,140 @@ from ml_pipeline.train import (
 
 
 class DatasetPipelineTests(SimpleTestCase):
+    def test_v2_source_registry_records_current_training_blockers(self):
+        registry = json.loads(
+            (settings.BASE_DIR / "ml_pipeline" / "source_registry.json").read_text(
+                encoding="utf-8"
+            )
+        )
+
+        self.assertEqual(registry["contract_version"], 2)
+        self.assertFalse(registry["training_ready"])
+        self.assertTrue(registry["blocking_requirements"])
+        self.assertEqual(registry["sources"]["phiusiil"]["license"], "CC BY 4.0")
+
+    def test_v2_corpus_normalization_is_stable_and_offline(self):
+        normalized, group = normalize_corpus_url(
+            "HTTPS://Example.COM:443/a/../login?q=1#private"
+        )
+
+        self.assertEqual(normalized, "https://example.com/a/../login?q=1")
+        self.assertEqual(group, "example.com")
+
+    def test_v2_corpus_rejects_credentials_and_naive_timestamps(self):
+        with self.assertRaises(CorpusValidationError):
+            normalize_corpus_url("https://user:secret@example.com/")
+        with self.assertRaises(CorpusValidationError):
+            URLSample(
+                "https://example.com/",
+                0,
+                "source",
+                datetime(2026, 1, 1),
+                True,
+            )
+        with self.assertRaises(CorpusValidationError):
+            URLSample("https://example.com/", True, "source", None, True)
+        with self.assertRaises(CorpusValidationError):
+            URLSample("https://example.com/", 0, "source", None, "yes")
+        with self.assertRaises(CorpusValidationError):
+            URLSample("", 0, "source", None, True)
+        with self.assertRaises(CorpusValidationError):
+            URLSample("https://example.com/", 0, "Source Name", None, True)
+        with self.assertRaises(CorpusValidationError):
+            normalize_corpus_url(None)
+
+    def test_v2_corpus_gate_rejects_source_and_representation_shortcuts(self):
+        observed_at = datetime(2026, 1, 1, tzinfo=UTC)
+        samples = [
+            URLSample("https://safe.example/", 0, "benign-feed", observed_at, True),
+            URLSample(
+                "https://other.example/",
+                0,
+                "domain-list",
+                observed_at,
+                True,
+                representation="domain",
+            ),
+            URLSample("https://phish.test/login", 1, "phish-feed", observed_at, True),
+        ]
+
+        report = audit_corpus(samples, min_samples_per_label=2)
+
+        self.assertFalse(report["training_ready"])
+        self.assertLess(report["full_url_coverage"]["benign"], 0.95)
+        with self.assertRaises(CorpusReadinessError):
+            require_training_ready(report)
+
+    def test_v2_corpus_gate_accepts_diverse_dated_full_urls(self):
+        observed_at = datetime(2026, 1, 1, tzinfo=UTC)
+        samples = [
+            URLSample(
+                "https://safe-one.example/path", 0, "benign-a", observed_at, True
+            ),
+            URLSample(
+                "https://safe-two.example/path", 0, "benign-b", observed_at, True
+            ),
+            URLSample("https://bad-one.test/login", 1, "phish-a", observed_at, True),
+            URLSample("https://bad-two.test/login", 1, "phish-b", observed_at, True),
+        ]
+
+        report = audit_corpus(samples, min_samples_per_label=2)
+
+        self.assertTrue(report["training_ready"])
+        require_training_ready(report)
+
+    def test_v2_corpus_duplicates_cannot_inflate_readiness_coverage(self):
+        observed_at = datetime(2026, 1, 1, tzinfo=UTC)
+        duplicate = URLSample(
+            "https://safe-one.com/path", 0, "benign-a", observed_at, True
+        )
+        samples = [
+            duplicate,
+            duplicate,
+            URLSample("https://safe-two.org/", 0, "benign-b", None, True, "origin"),
+            URLSample("https://bad-one.net/login", 1, "phish-a", observed_at, True),
+            URLSample("https://bad-two.co.uk/", 1, "phish-b", observed_at, True),
+        ]
+
+        report = audit_corpus(samples, min_samples_per_label=2)
+
+        self.assertEqual(report["labels"]["benign"], 2)
+        self.assertEqual(report["timestamp_coverage"]["benign"], 0.5)
+        self.assertEqual(report["full_url_coverage"]["benign"], 0.5)
+        self.assertFalse(report["training_ready"])
+
+    def test_v2_corpus_gate_rejects_unlicensed_samples(self):
+        observed_at = datetime(2026, 1, 1, tzinfo=UTC)
+        samples = [
+            URLSample("https://safe-one.example/", 0, "benign-a", observed_at, True),
+            URLSample("https://safe-two.example/", 0, "benign-b", observed_at, False),
+            URLSample("https://bad-one.test/", 1, "phish-a", observed_at, True),
+            URLSample("https://bad-two.test/", 1, "phish-b", observed_at, True),
+        ]
+
+        report = audit_corpus(samples)
+
+        self.assertFalse(report["training_ready"])
+        self.assertEqual(report["licensed_coverage"]["benign"], 0.5)
+
+    def test_v2_corpus_removes_conflicting_normalized_urls(self):
+        observed_at = datetime(2026, 1, 1, tzinfo=UTC)
+        samples = [
+            URLSample("https://example.com", 0, "source-a", observed_at, True),
+            URLSample(
+                "https://EXAMPLE.com:443/#fragment",
+                1,
+                "source-b",
+                observed_at,
+                True,
+            ),
+        ]
+
+        report = audit_corpus(samples)
+
+        self.assertEqual(report["conflicting_urls"], 1)
+        self.assertEqual(report["retained_urls"], 0)
+
     def test_committed_manifest_has_required_provenance(self):
         manifest = load_manifest()
 

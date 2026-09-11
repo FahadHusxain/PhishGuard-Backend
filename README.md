@@ -11,6 +11,7 @@ whitelist management.
 - [Deployment and recovery runbook](docs/operations.md)
 - [Release checklist](docs/release-checklist.md)
 - [ML experimentation and evaluation](ml_pipeline/README.md)
+- [ML version 2 upgrade plan](docs/ml-upgrade-plan.md)
 - [Unreleased change history](CHANGELOG.md)
 
 ## Local development

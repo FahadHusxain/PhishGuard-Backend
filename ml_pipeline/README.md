@@ -33,3 +33,16 @@ positive review, and a compatible audited inference implementation.
 without tuning, against checksum-recorded PhishTank and Tranco snapshots. Raw
 feeds stay in `.ml-data/` and are not redistributed. The resulting cross-source
 report is committed so the rejection decision remains reviewable.
+
+## Version 2 safety gate
+
+`corpus.py` defines the provenance-aware contract for the replacement corpus.
+It records source, observation time, representation type, and confirmed
+training rights for every sample. `audit_corpus` detects normalized conflicts,
+source/label shortcuts, incomplete time coverage, and bare-domain imbalance;
+`require_training_ready` prevents model fitting while any minimum gate fails.
+
+The current source status is machine-readable in `source_registry.json`. It is
+deliberately marked not ready. See the
+[ML upgrade plan](../docs/ml-upgrade-plan.md) for acquisition, modeling,
+calibration, and promotion stages.
