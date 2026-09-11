@@ -914,6 +914,42 @@ class DatasetPipelineTests(SimpleTestCase):
         )
         self.assertIn("new future temporal holdout", policy["if_gate_passes"])
 
+    def test_v4_future_policy_is_bound_before_snapshot_acquisition(self):
+        policy_path = (
+            settings.BASE_DIR / "ml_pipeline" / "v4_future_evaluation_policy.json"
+        )
+        policy = json.loads(policy_path.read_text(encoding="utf-8"))
+        development_report = json.loads(
+            (
+                settings.BASE_DIR / "ml_models" / "V4_ENSEMBLE_DEVELOPMENT.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(
+            policy["candidate_commit"],
+            "b62de62baef9cc12a0a90b1dce411678ed82b997",
+        )
+        self.assertEqual(policy["candidate_sha256"], development_report["model_sha256"])
+        self.assertEqual(
+            policy["component_sha256"], development_report["component_sha256"]
+        )
+        self.assertTrue(policy["thresholds_are_frozen"])
+        self.assertTrue(
+            policy["data_contract"]["every_observation_after_candidate_freeze"]
+        )
+        self.assertGreaterEqual(
+            policy["data_contract"]["minimum_retained_rows_per_label"], 2000
+        )
+
+        example = json.loads(
+            (
+                settings.BASE_DIR
+                / "ml_pipeline"
+                / "future_holdout_manifest.example.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertFalse(example["files"][0]["evaluation_rights_reviewed"])
+
     def test_v4_ensemble_artifact_matches_selected_development_report(self):
         model_path = settings.BASE_DIR / "ml_models" / "url_ensemble_candidate_v4.npz"
         policy_path = settings.BASE_DIR / "ml_pipeline" / "v4_development_policy.json"

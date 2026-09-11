@@ -221,3 +221,18 @@ holdouts are also prohibited because their results have been opened. The next
 scientific step is to acquire and checksum a genuinely future temporal snapshot,
 freeze a v4 evaluation policy before viewing its labels, then evaluate once
 without threshold changes. Shadow-mode review remains required afterward.
+
+The final evaluation rules are now frozen in
+`ml_pipeline/v4_future_evaluation_policy.json`, bound to candidate commit
+`b62de62` and the exact ensemble/component hashes. A future snapshot must be
+acquired after that commit, every retained observation must be newer, and its
+manifest must document checksums, label methods, timestamps, and reviewed
+evaluation rights. `future_holdout_manifest.example.json` is deliberately
+non-runnable until those facts are supplied.
+
+PhishTank is suitable as a candidate phishing source because its official feed
+contains community-verified online phishing URLs and verification timestamps.
+It cannot provide benign labels. Common Crawl may supply recent URL observations,
+but crawl presence is not benign ground truth and its terms place responsibility
+for accuracy and third-party rights on the user. Neither source alone satisfies
+the frozen evaluation contract.

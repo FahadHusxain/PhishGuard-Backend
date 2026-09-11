@@ -36,6 +36,8 @@ approved for merge.
   hashes, partition isolation, and a no-historical-holdout rule.
 - A development-selected v4 lexical/structural ensemble with safe hash-bound
   artifacts, portable inference parity, and an explicit future-data blocker.
+- A hash-bound future-evaluation policy and non-runnable manifest template that
+  require prospective timestamps, defensible labels, and reviewed data rights.
 
 ### Changed
 
