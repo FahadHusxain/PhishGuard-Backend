@@ -32,6 +32,8 @@ approved for merge.
   v2 lexical candidate's rejection and aggregate error/operational evidence.
 - A safe, reproducible structural-feature gradient-boosting experiment, with
   native/portable inference parity and a documented development rejection.
+- A pre-registered v4 ensemble-development policy bound to exact component
+  hashes, partition isolation, and a no-historical-holdout rule.
 
 ### Changed
 

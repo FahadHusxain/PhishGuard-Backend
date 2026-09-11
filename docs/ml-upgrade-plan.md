@@ -198,3 +198,9 @@ research evidence and will not consume a new holdout evaluation.
 The next planned experiment is a calibrated lexical/structural ensemble. It
 may be selected only from training/development evidence and cannot be promoted
 without a genuinely new future temporal snapshot.
+
+Before producing any v4 scores, `ml_pipeline/v4_development_policy.json`
+freezes the exact component hashes, raw-score stacking design, logistic meta
+model, data-partition contract, and numerical development gate. Failure of any
+required gate rejects v4 without scoring an opened historical holdout. Passing
+the gate would establish only development selection, not production readiness.

@@ -820,6 +820,31 @@ class DatasetPipelineTests(SimpleTestCase):
         )
         StructuralCandidate(model_path)
 
+    def test_v4_development_policy_is_frozen_to_both_components(self):
+        policy = json.loads(
+            (
+                settings.BASE_DIR / "ml_pipeline" / "v4_development_policy.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        for component in policy["components"].values():
+            artifact_path = (
+                settings.BASE_DIR / "ml_pipeline" / component["artifact"]
+            ).resolve()
+            self.assertEqual(component["sha256"], sha256_file(artifact_path))
+        self.assertTrue(
+            policy["partition_contract"]["historical_holdouts_must_not_be_loaded"]
+        )
+        self.assertGreaterEqual(
+            policy["development_acceptance_gate"]["safe_precision_at_least"],
+            0.99,
+        )
+        self.assertGreaterEqual(
+            policy["development_acceptance_gate"]["phishing_precision_at_least"],
+            0.99,
+        )
+        self.assertIn("new future temporal holdout", policy["if_gate_passes"])
+
     def test_v2_holdout_report_preserves_failed_frozen_evaluation(self):
         report_path = settings.BASE_DIR / "ml_models" / "V2_HOLDOUT_EVALUATION.json"
         report_text = report_path.read_text(encoding="utf-8")
