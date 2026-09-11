@@ -82,6 +82,8 @@ not a DDoS firewall; production should also enforce limits at its edge proxy or
 hosting platform.
 
 Scan records contain only normalized origins, not paths, queries, or fragments.
+Public statistics contain aggregate counts only. Recent submitted domains are
+returned only to active staff users with the `api.view_scanlog` permission.
 Delete records older than the configured retention period with:
 
 ```bash

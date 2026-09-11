@@ -127,6 +127,7 @@ class DashboardStatsSerializer(serializers.Serializer):
     safe_count = serializers.IntegerField(min_value=0)
     unknown_count = serializers.IntegerField(min_value=0)
     whitelist_count = serializers.IntegerField(min_value=0)
+    recent_logs_visible = serializers.BooleanField()
     recent_logs = RecentScanSerializer(many=True)
     graph_data = serializers.ListField(child=serializers.JSONField())
 

@@ -436,7 +436,11 @@
                 terminal.innerHTML = '';
                 markersLayer.clearLayers();
 
-                if(data.recent_logs.length === 0) terminal.innerHTML = '<div class="log-entry">[System] Waiting for traffic...</div>';
+                if (!data.recent_logs_visible) {
+                    terminal.innerHTML = '<div class="log-entry">[System] Recent targets require authorized access.</div>';
+                } else if (data.recent_logs.length === 0) {
+                    terminal.innerHTML = '<div class="log-entry">[System] Waiting for traffic...</div>';
+                }
                 
                 data.recent_logs.forEach(log => {
                     // Logs

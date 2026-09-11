@@ -411,7 +411,7 @@ class URLApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["status"], "PHISHING")
 
-    def test_dashboard_does_not_expose_full_urls_or_ip_addresses(self):
+    def test_public_dashboard_does_not_expose_recent_scan_targets(self):
         ScanLog.objects.create(
             origin="https://example.com/reset?token=secret",
             status="SAFE",
@@ -423,10 +423,53 @@ class URLApiTests(APITestCase):
         response = self.client.get(reverse("dashboard_stats"))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["recent_logs_visible"])
+        self.assertEqual(response.data["recent_logs"], [])
+
+    def test_authorized_dashboard_exposes_only_redacted_recent_origins(self):
+        ScanLog.objects.create(
+            origin="https://example.com/reset?token=secret",
+            status="SAFE",
+            confidence=95,
+            ip_address="8.8.8.8",
+            country="United States",
+        )
+        user = get_user_model().objects.create_user(
+            username="analyst",
+            is_staff=True,
+        )
+        permission = Permission.objects.get(
+            content_type__app_label="api",
+            codename="view_scanlog",
+        )
+        user.user_permissions.add(permission)
+        self.client.force_authenticate(user=user)
+
+        response = self.client.get(reverse("dashboard_stats"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["recent_logs_visible"])
         recent_log = response.data["recent_logs"][0]
         self.assertEqual(recent_log["domain"], "example.com")
         self.assertNotIn("url", recent_log)
         self.assertNotIn("ip_address", recent_log)
+
+    def test_staff_without_view_permission_cannot_see_recent_scan_targets(self):
+        ScanLog.objects.create(
+            origin="https://example.com",
+            status="SAFE",
+            confidence=95,
+        )
+        user = get_user_model().objects.create_user(
+            username="staff-without-permission",
+            is_staff=True,
+        )
+        self.client.force_authenticate(user=user)
+
+        response = self.client.get(reverse("dashboard_stats"))
+
+        self.assertFalse(response.data["recent_logs_visible"])
+        self.assertEqual(response.data["recent_logs"], [])
 
     def test_removed_fix_endpoint_returns_not_found(self):
         response = self.client.get("/api/fix-now/")

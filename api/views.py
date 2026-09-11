@@ -18,7 +18,7 @@ from rest_framework.response import Response
 from .domains import whitelist_candidates
 from .ml_logic import predict_url_security
 from .models import ScanLog, WhitelistAuditEvent, WhitelistDomain
-from .permissions import CanManageWhitelist
+from .permissions import CanManageWhitelist, can_view_scan_activity
 from .serializers import (
     DashboardStatsSerializer,
     ErrorEnvelopeSerializer,
@@ -223,7 +223,8 @@ def report_safe(request):
 @permission_classes([AllowAny])
 @throttle_classes([ReadRateThrottle])
 def dashboard_stats(request):
-    recent_scan_rows = ScanLog.objects.all()[:10]
+    recent_logs_visible = can_view_scan_activity(request.user)
+    recent_scan_rows = ScanLog.objects.all()[:10] if recent_logs_visible else []
     recent_logs = []
     for scan in recent_scan_rows:
         try:
@@ -247,6 +248,7 @@ def dashboard_stats(request):
             "safe_count": ScanLog.objects.filter(status="SAFE").count(),
             "unknown_count": ScanLog.objects.filter(status="UNKNOWN").count(),
             "whitelist_count": WhitelistDomain.objects.count(),
+            "recent_logs_visible": recent_logs_visible,
             "recent_logs": recent_logs,
             "graph_data": [],
         }

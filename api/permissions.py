@@ -21,3 +21,14 @@ class CanManageWhitelist(BasePermission):
             and user.is_staff
             and user.has_perms(self.required_permissions)
         )
+
+
+def can_view_scan_activity(user):
+    """Return whether a user may view submitted domains in recent activity."""
+    return bool(
+        user
+        and user.is_authenticated
+        and user.is_active
+        and user.is_staff
+        and user.has_perm("api.view_scanlog")
+    )
