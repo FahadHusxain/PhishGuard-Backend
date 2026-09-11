@@ -6,6 +6,7 @@ from pathlib import Path
 from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError
 
+from api.dashboard import invalidate_dashboard_aggregates
 from api.domains import normalize_whitelist_domain
 from api.models import WhitelistDomain
 
@@ -71,6 +72,7 @@ class Command(BaseCommand):
                 f"Import complete: {queued} valid rows queued, {skipped} skipped"
             )
         )
+        invalidate_dashboard_aggregates()
 
     @staticmethod
     def _write_batch(batch):

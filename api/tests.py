@@ -33,6 +33,7 @@ from backend.settings import env_bool, env_list
 
 from .admin import ScanLogAdmin, WhitelistAuditEventAdmin
 from .checks import shared_throttle_cache_check, throttle_rate_configuration_check
+from .dashboard import DASHBOARD_CACHE_KEY, get_dashboard_aggregates
 from .domains import (
     normalize_hostname,
     normalize_whitelist_domain,
@@ -524,6 +525,24 @@ class URLApiTests(APITestCase):
         self.assertFalse(response.data["recent_logs_visible"])
         self.assertEqual(response.data["recent_logs"], [])
 
+    def test_trusted_domain_search_uses_prefixes_and_excludes_disabled_entries(self):
+        WhitelistDomain.objects.bulk_create(
+            [
+                WhitelistDomain(domain="google.com", rank=1),
+                WhitelistDomain(domain="google.org", rank=2),
+                WhitelistDomain(domain="not-google.example", rank=3),
+                WhitelistDomain(domain="google-disabled.example", rank=0),
+            ]
+        )
+
+        response = self.client.get(reverse("search_db"), {"q": "google"})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            [item["domain"] for item in response.data],
+            ["google.com", "google.org"],
+        )
+
     def test_removed_fix_endpoint_returns_not_found(self):
         response = self.client.get("/api/fix-now/")
 
@@ -577,6 +596,70 @@ class DomainIntegrityTests(APITestCase):
 
     def test_ip_address_is_its_own_whitelist_boundary(self):
         self.assertEqual(whitelist_candidates("2001:0db8::1"), ["2001:db8::1"])
+
+
+class DashboardPerformanceTests(APITestCase):
+    def setUp(self):
+        cache.clear()
+
+    def test_aggregate_counts_use_two_queries_and_then_the_cache(self):
+        ScanLog.objects.bulk_create(
+            [
+                ScanLog(
+                    origin="https://safe.example",
+                    status=ScanLog.Status.SAFE,
+                    confidence=80,
+                ),
+                ScanLog(
+                    origin="https://unknown.example",
+                    status=ScanLog.Status.UNKNOWN,
+                    confidence=0,
+                ),
+            ]
+        )
+        WhitelistDomain.objects.bulk_create(
+            [
+                WhitelistDomain(domain="trusted.example", rank=1),
+                WhitelistDomain(domain="disabled.example", rank=0),
+            ]
+        )
+
+        with self.assertNumQueries(2):
+            aggregates = get_dashboard_aggregates()
+        with self.assertNumQueries(0):
+            cached_aggregates = get_dashboard_aggregates()
+
+        self.assertEqual(aggregates, cached_aggregates)
+        self.assertEqual(aggregates["total_scans"], 2)
+        self.assertEqual(aggregates["safe_count"], 1)
+        self.assertEqual(aggregates["unknown_count"], 1)
+        self.assertEqual(aggregates["whitelist_count"], 1)
+
+    def test_model_writes_invalidate_cached_aggregates(self):
+        initial = get_dashboard_aggregates()
+        self.assertEqual(initial["total_scans"], 0)
+        self.assertIsNotNone(cache.get(DASHBOARD_CACHE_KEY))
+
+        ScanLog.objects.create(
+            origin="https://example.com",
+            status=ScanLog.Status.SAFE,
+            confidence=90,
+        )
+
+        self.assertIsNone(cache.get(DASHBOARD_CACHE_KEY))
+        self.assertEqual(get_dashboard_aggregates()["total_scans"], 1)
+
+    @patch("api.signals.invalidate_dashboard_aggregates")
+    def test_model_writes_repeat_invalidation_after_commit(self, invalidate):
+        with self.captureOnCommitCallbacks(execute=True) as callbacks:
+            ScanLog.objects.create(
+                origin="https://example.com",
+                status=ScanLog.Status.SAFE,
+                confidence=90,
+            )
+
+        self.assertEqual(len(callbacks), 1)
+        self.assertEqual(invalidate.call_count, 2)
 
 
 class WhitelistAdministrationTests(APITestCase):

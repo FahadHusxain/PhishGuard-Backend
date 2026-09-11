@@ -15,6 +15,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
+from .dashboard import get_dashboard_aggregates
 from .domains import whitelist_candidates
 from .ml_logic import predict_url_security
 from .models import ScanLog, WhitelistAuditEvent, WhitelistDomain
@@ -223,6 +224,7 @@ def report_safe(request):
 @permission_classes([AllowAny])
 @throttle_classes([ReadRateThrottle])
 def dashboard_stats(request):
+    aggregates = get_dashboard_aggregates()
     recent_logs_visible = can_view_scan_activity(request.user)
     recent_scan_rows = ScanLog.objects.all()[:10] if recent_logs_visible else []
     recent_logs = []
@@ -243,11 +245,7 @@ def dashboard_stats(request):
 
     return Response(
         {
-            "total_scans": ScanLog.objects.count(),
-            "phishing_count": ScanLog.objects.filter(status="PHISHING").count(),
-            "safe_count": ScanLog.objects.filter(status="SAFE").count(),
-            "unknown_count": ScanLog.objects.filter(status="UNKNOWN").count(),
-            "whitelist_count": WhitelistDomain.objects.count(),
+            **aggregates,
             "recent_logs_visible": recent_logs_visible,
             "recent_logs": recent_logs,
             "graph_data": [],
@@ -273,9 +271,10 @@ def search_whitelist(request):
     serializer = WhitelistSearchSerializer(data=request.query_params)
     serializer.is_valid(raise_exception=True)
     query = serializer.validated_data["q"]
-    results = WhitelistDomain.objects.filter(domain__icontains=query).order_by(
-        "rank", "domain"
-    )[:20]
+    results = WhitelistDomain.objects.filter(
+        domain__startswith=query,
+        rank__gt=0,
+    ).order_by("rank", "domain")[:20]
     return Response([{"domain": entry.domain, "rank": entry.rank} for entry in results])
 
 

@@ -68,7 +68,12 @@ class WhitelistSubmissionSerializer(URLSubmissionSerializer):
 
 
 class WhitelistSearchSerializer(serializers.Serializer):
-    q = serializers.CharField(max_length=253, min_length=2, trim_whitespace=True)
+    q = serializers.CharField(
+        max_length=253,
+        min_length=2,
+        trim_whitespace=True,
+        help_text="Lowercase domain prefix to search for.",
+    )
 
     def validate_q(self, value: str) -> str:
         value = value.lower().rstrip(".")

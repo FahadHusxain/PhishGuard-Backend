@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
+from api.dashboard import invalidate_dashboard_aggregates
 from api.models import ScanLog
 
 
@@ -42,6 +43,7 @@ class Command(BaseCommand):
             return
 
         deleted_count, _ = expired_logs.delete()
+        invalidate_dashboard_aggregates()
         self.stdout.write(
             self.style.SUCCESS(
                 f"Deleted {deleted_count} scan log(s) older than {days} days"

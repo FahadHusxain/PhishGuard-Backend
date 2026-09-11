@@ -152,12 +152,21 @@ try:
         os.getenv("PHISHGUARD_MAX_REQUEST_FIELDS", "20")
     )
     PHISHGUARD_NUM_PROXIES = int(os.getenv("PHISHGUARD_NUM_PROXIES", "0"))
+    PHISHGUARD_STATS_CACHE_SECONDS = int(
+        os.getenv("PHISHGUARD_STATS_CACHE_SECONDS", "10")
+    )
 except ValueError as exc:
     raise ImproperlyConfigured(
-        "Request limits and PHISHGUARD_NUM_PROXIES must be integers."
+        "Request limits, cache duration, and PHISHGUARD_NUM_PROXIES must be integers."
     ) from exc
-if DATA_UPLOAD_MAX_MEMORY_SIZE < 1024 or DATA_UPLOAD_MAX_NUMBER_FIELDS < 1:
-    raise ImproperlyConfigured("Request size and field limits must be positive.")
+if (
+    DATA_UPLOAD_MAX_MEMORY_SIZE < 1024
+    or DATA_UPLOAD_MAX_NUMBER_FIELDS < 1
+    or PHISHGUARD_STATS_CACHE_SECONDS < 1
+):
+    raise ImproperlyConfigured(
+        "Request size, field limits, and cache duration must be positive."
+    )
 if PHISHGUARD_NUM_PROXIES < 0:
     raise ImproperlyConfigured("PHISHGUARD_NUM_PROXIES cannot be negative.")
 

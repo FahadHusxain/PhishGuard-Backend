@@ -86,6 +86,21 @@ state. Application throttling is a fairness and resource-protection control,
 not a DDoS firewall; production should also enforce limits at its edge proxy or
 hosting platform.
 
+Dashboard aggregates are computed with two database queries and cached for ten
+seconds by default (`PHISHGUARD_STATS_CACHE_SECONDS`). Model writes invalidate
+the cached values. Trusted-domain search uses an indexed prefix rather than an
+unbounded substring scan across the full dataset.
+
+Run a bounded, read-only concurrency smoke test against a running instance with:
+
+```bash
+python scripts/load_test.py --base-url http://127.0.0.1:8000 \
+  --requests 100 --concurrency 10
+```
+
+Pass `--target https://example.com/login` to exercise analysis instead; those
+requests create normal scan records and remain subject to API throttling.
+
 Scan records contain only normalized origins, not paths, queries, or fragments.
 Public statistics contain aggregate counts only. Recent submitted domains are
 returned only to active staff users with the `api.view_scanlog` permission.
