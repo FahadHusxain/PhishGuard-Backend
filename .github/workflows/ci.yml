@@ -46,6 +46,9 @@ jobs:
       - name: Check formatting
         run: python -m ruff format --check .
 
+      - name: Check documentation links
+        run: python scripts/check_docs.py
+
       - name: Check Django configuration and migrations
         run: |
           python manage.py check

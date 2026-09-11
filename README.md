@@ -3,6 +3,16 @@
 PhishGuard is a Django REST API for URL phishing analysis, scan logging, and
 whitelist management.
 
+## Project documentation
+
+- [System architecture and data flow](docs/architecture.md)
+- [Security threat model](docs/threat-model.md)
+- [Testing and examiner demonstration guide](docs/testing.md)
+- [Deployment and recovery runbook](docs/operations.md)
+- [Release checklist](docs/release-checklist.md)
+- [ML experimentation and evaluation](ml_pipeline/README.md)
+- [Unreleased change history](CHANGELOG.md)
+
 ## Local development
 
 The supported development baseline is Python 3.13.15 and Django 5.2.17 LTS.
