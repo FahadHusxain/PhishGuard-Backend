@@ -2,9 +2,9 @@
 
 ## Status
 
-`NOT_PROMOTED`. This artifact is an offline candidate and is not imported by the
-production API. Published test splits, operational slices, latency/memory gates,
-and shadow-mode behavior have not yet been evaluated.
+`REJECTED_BY_HOLDOUT_GATE`. This artifact is retained as reproducible negative
+evidence and is not imported by the production API. Its thresholds must not be
+retuned against the now-opened holdouts.
 
 ## Intended use
 
@@ -64,6 +64,15 @@ URLs across 29,973 registrable-domain groups.
   requires rules, reputation evidence, or human/user caution—not a SAFE fallback.
 - A phishing page can disappear or a benign domain can later be compromised;
   labels describe observations, not permanent domain truth.
+
+## Frozen holdout decision
+
+The unchanged candidate was tested on 94,087 unseen-domain URLs after the
+pre-registered contamination exclusions. It failed SAFE precision, false-safe,
+decisive-coverage, and both per-source gates. PhishVN PHISHING precision was
+0.365979, demonstrating material source shift. Operational size, latency, and
+throughput gates passed. The candidate is permanently rejected; see
+`V2_HOLDOUT_EVALUATION.json` for aggregate evidence.
 
 See `V2_CANDIDATE_DEVELOPMENT.json` for the machine-readable record and
 `../docs/ml-upgrade-plan.md` for the remaining promotion gates.

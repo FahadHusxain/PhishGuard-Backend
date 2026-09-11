@@ -61,8 +61,11 @@ def _phreshphish_urls(source: dict) -> list[str]:
     shard_count = source["shard_count"]
     if type(shard_count) is not int or shard_count < 1:
         raise DatasetIntegrityError("PhreshPhish shard count is invalid.")
+    split = source.get("split", "train")
+    if split not in {"train", "test"}:
+        raise DatasetIntegrityError("PhreshPhish split is invalid.")
     return [
-        f"{HUGGING_FACE_PREFIX}{revision}/data/train-{index:03d}.parquet"
+        f"{HUGGING_FACE_PREFIX}{revision}/data/{split}-{index:03d}.parquet"
         for index in range(shard_count)
     ]
 
@@ -82,13 +85,13 @@ def acquire_phreshphish(
     source = manifest["phreshphish"]
     destination = data_directory / source["local_filename"]
     expected_sha256 = source["output_sha256"]
+    if not expected_sha256 and not establish_lock:
+        raise DatasetIntegrityError(
+            "PhreshPhish output lock is unset; maintainer bootstrap is required."
+        )
     if destination.exists():
         actual_sha256 = sha256_file(destination)
     else:
-        if not expected_sha256 and not establish_lock:
-            raise DatasetIntegrityError(
-                "PhreshPhish output lock is unset; maintainer bootstrap is required."
-            )
         try:
             import duckdb
         except ImportError as exc:
@@ -120,23 +123,49 @@ def acquire_phreshphish(
     return destination, actual_sha256
 
 
+def acquire_phreshphish_holdout(
+    data_directory: Path,
+    manifest: dict,
+    *,
+    establish_lock: bool = False,
+) -> tuple[Path, str]:
+    """Project the separately pinned published test split."""
+    parent = manifest["phreshphish"]
+    holdout = {**parent["holdout"], "revision": parent["revision"]}
+    return acquire_phreshphish(
+        data_directory,
+        {"phreshphish": holdout},
+        establish_lock=establish_lock,
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", type=Path, default=Path(".ml-data"))
     parser.add_argument("--establish-lock", action="store_true")
+    parser.add_argument("--include-holdout", action="store_true")
     arguments = parser.parse_args()
     manifest = load_open_manifest()
     phishvn_path = acquire_phishvn(arguments.data, manifest)
     phreshphish_path, projected_hash = acquire_phreshphish(
         arguments.data, manifest, establish_lock=arguments.establish_lock
     )
+    result = {
+        "phishvn": str(phishvn_path),
+        "phreshphish": str(phreshphish_path),
+        "phreshphish_output_sha256": projected_hash,
+    }
+    if arguments.include_holdout:
+        holdout_path, holdout_hash = acquire_phreshphish_holdout(
+            arguments.data,
+            manifest,
+            establish_lock=arguments.establish_lock,
+        )
+        result["phreshphish_holdout"] = str(holdout_path)
+        result["phreshphish_holdout_output_sha256"] = holdout_hash
     print(
         json.dumps(
-            {
-                "phishvn": str(phishvn_path),
-                "phreshphish": str(phreshphish_path),
-                "phreshphish_output_sha256": projected_hash,
-            },
+            result,
             indent=2,
         )
     )

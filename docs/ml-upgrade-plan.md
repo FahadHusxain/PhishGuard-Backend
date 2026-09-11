@@ -157,3 +157,23 @@ candidate hash, contamination exclusions, aggregate and per-source quality
 floors, realistic-prevalence scenarios, artifact-size limit, and inference
 latency requirements. No threshold or model parameter may change after this
 point; a failed required gate rejects the candidate rather than moving the goal.
+
+## Frozen holdout result
+
+The v2 lexical baseline was evaluated once, unchanged, on 94,087 canonical URLs
+whose registrable domains were absent from training. The evaluator first removed
+1,733 malformed rows, 75,764 training-domain overlaps, 2,374 rows from 60
+cross-label domains, and 19 duplicates.
+
+The candidate is **rejected**. Aggregate PR-AUC was 0.966290 and PHISHING
+precision was 0.991727, but SAFE precision was only 0.948806, decisive coverage
+was 0.476261, and the false-safe rate was 0.022278. On PhishVN specifically,
+PHISHING precision fell to 0.365979. At a simulated 1% phishing prevalence,
+the measured rates imply only 0.439110 PHISHING precision. The compact artifact,
+single-URL latency, and batch-throughput gates passed, so the failure is model
+generalization rather than deployment cost.
+
+No threshold will be retuned against these opened holdouts. They can remain a
+historical benchmark, but a materially different candidate must be developed
+using training/development evidence only and must reserve a new future temporal
+snapshot for final unbiased promotion evidence.

@@ -41,6 +41,15 @@ from ml_pipeline.evaluate_external import (
     _verified_path,
     evaluate,
 )
+from ml_pipeline.evaluate_v2_holdout import (
+    HoldoutRecord,
+    _base_rate_metrics,
+    _benchmark,
+    _gate_metrics,
+    _prepare_records,
+    _score,
+    _slices,
+)
 from ml_pipeline.train import (
     FEATURE_COUNT,
     _load_splits,
@@ -77,6 +86,15 @@ class DatasetPipelineTests(SimpleTestCase):
         self.assertTrue(
             registry["sources"]["phreshphish_v1.0.1_train"]["training_rights_confirmed"]
         )
+        self.assertEqual(
+            registry["candidate_evaluations"]["v2_lexical"]["status"],
+            "rejected_by_holdout_gate",
+        )
+        self.assertFalse(
+            registry["candidate_evaluations"]["v2_lexical"][
+                "thresholds_changed_after_holdout"
+            ]
+        )
 
     def test_open_corpus_manifest_is_immutable_and_url_only(self):
         manifest = acquire_open_corpus.load_open_manifest()
@@ -89,6 +107,11 @@ class DatasetPipelineTests(SimpleTestCase):
         self.assertNotIn("html", manifest["phreshphish"]["projected_columns"])
         self.assertRegex(manifest["phreshphish"]["output_sha256"], r"^[0-9a-f]{64}$")
         self.assertRegex(manifest["phishvn"]["archive_sha256"], r"^[0-9a-f]{64}$")
+        self.assertEqual(manifest["phreshphish"]["holdout"]["split"], "test")
+        self.assertEqual(manifest["phreshphish"]["holdout"]["reported_rows"], 168060)
+        self.assertRegex(
+            manifest["phreshphish"]["holdout"]["output_sha256"], r"^[0-9a-f]{64}$"
+        )
 
     def test_v2_corpus_normalization_is_stable_and_offline(self):
         normalized, group = normalize_corpus_url(
@@ -266,6 +289,105 @@ class DatasetPipelineTests(SimpleTestCase):
         with self.assertRaises(RuntimeError):
             _upper_threshold(np.asarray([1, 0], dtype=np.int8), tied_probabilities)
 
+    def test_v2_holdout_preparation_excludes_contamination_and_conflicts(self):
+        samples = [
+            URLSample("https://train.example.org/new", 0, "source-a", None, True),
+            URLSample("https://a.example.com/safe", 0, "source-a", None, True),
+            URLSample("https://b.example.com/phish", 1, "source-b", None, True),
+            URLSample("https://retained.example.net/path", 1, "source-a", None, True),
+            URLSample("https://retained.example.net/path", 1, "source-b", None, True),
+            URLSample("not-a-url", 1, "source-b", None, True),
+        ]
+
+        records, exclusions = _prepare_records(samples, {"example.org"})
+
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0].sources, {"source-a", "source-b"})
+        self.assertEqual(exclusions["training_overlap_rows_removed"], 1)
+        self.assertEqual(exclusions["ambiguous_groups_quarantined"], 1)
+        self.assertEqual(exclusions["ambiguous_rows_quarantined"], 2)
+        self.assertEqual(exclusions["duplicate_rows_removed"], 1)
+        self.assertEqual(exclusions["invalid_rows"], 1)
+
+    def test_v2_holdout_gate_and_base_rate_math_are_explicit(self):
+        metrics = {
+            "pr_auc": 0.96,
+            "safe_precision": 0.995,
+            "phishing_precision": 0.995,
+            "decisive_coverage": 0.6,
+            "false_safe_rate": 0.005,
+            "false_phishing_rate": 0.001,
+            "benign_recall": 0.8,
+            "phishing_recall": 0.6,
+        }
+        gate = {
+            "pr_auc_at_least": 0.95,
+            "safe_precision_at_least": 0.99,
+            "phishing_precision_at_least": 0.99,
+            "decisive_coverage_at_least": 0.5,
+            "false_safe_rate_at_most": 0.01,
+            "false_phishing_rate_at_most": 0.005,
+        }
+
+        passed, failures = _gate_metrics(metrics, gate)
+        scenarios = _base_rate_metrics(metrics, [0.01])
+
+        self.assertTrue(passed)
+        self.assertEqual(failures, [])
+        self.assertEqual(scenarios[0]["phishing_prevalence"], 0.01)
+        self.assertGreater(scenarios[0]["estimated_safe_precision"], 0.99)
+
+    def test_v2_holdout_slices_and_operational_benchmark_are_aggregate_only(self):
+        records = [
+            HoldoutRecord(
+                "https://example.com/login?confirm=1",
+                1,
+                {"source-a"},
+                datetime(2025, 1, 2, tzinfo=UTC),
+                "example.com",
+            ),
+            HoldoutRecord(
+                "http://127.0.0.1/",
+                1,
+                {"source-a"},
+                None,
+                "127.0.0.1",
+            ),
+            HoldoutRecord(
+                "https://xn--bcher-kva.example/",
+                0,
+                {"source-b"},
+                datetime(2025, 2, 3, tzinfo=UTC),
+                "xn--bcher-kva.example",
+            ),
+        ]
+        labels = np.asarray([1, 1, 0], dtype=np.int8)
+        probabilities = np.asarray([0.99, 0.5, 0.01])
+
+        slices = _slices(records, labels, probabilities, 0.1, 0.9, 1)
+
+        self.assertEqual(slices["host_type"]["ip"]["rows"], 1)
+        self.assertEqual(slices["host_type"]["idn"]["rows"], 1)
+        self.assertEqual(slices["query"]["present"]["rows"], 1)
+        self.assertEqual(slices["lure_terms"]["present"]["rows"], 1)
+        self.assertIn("2025-01", slices["month"])
+
+        fake_candidate = SimpleNamespace(
+            predict_probabilities=lambda urls: np.full(len(urls), 0.25),
+            predict_probability=lambda _url: 0.25,
+        )
+        with TemporaryDirectory() as temporary_directory:
+            model_path = Path(temporary_directory) / "model.npz"
+            model_path.write_bytes(b"model")
+            scores = _score(fake_candidate, [record.url for record in records])
+            benchmark = _benchmark(
+                fake_candidate, [record.url for record in records], model_path
+            )
+
+        self.assertEqual(scores.tolist(), [0.25, 0.25, 0.25])
+        self.assertEqual(benchmark["artifact_size_bytes"], 5)
+        self.assertGreater(benchmark["batch_throughput_urls_per_second"], 0)
+
     def test_open_corpus_phreshphish_parser_preserves_labels_and_dates(self):
         content = (
             "sha256,url,label,date\n"
@@ -323,6 +445,27 @@ class DatasetPipelineTests(SimpleTestCase):
 
         self.assertEqual(result_path, path)
         self.assertEqual(result_hash, source["output_sha256"])
+
+    def test_phreshphish_holdout_wrapper_inherits_pinned_revision(self):
+        manifest = {
+            "phreshphish": {
+                "revision": "a" * 40,
+                "holdout": {"split": "test", "shard_count": 2},
+            }
+        }
+        expected = (Path("holdout.csv"), "b" * 64)
+        with patch(
+            "ml_pipeline.acquire_open_corpus.acquire_phreshphish",
+            return_value=expected,
+        ) as acquire:
+            result = acquire_open_corpus.acquire_phreshphish_holdout(
+                Path("data"), manifest
+            )
+
+        self.assertEqual(result, expected)
+        projected = acquire.call_args.args[1]["phreshphish"]
+        self.assertEqual(projected["revision"], "a" * 40)
+        self.assertEqual(projected["split"], "test")
 
     def test_v2_phishtank_parser_preserves_time_and_unconfirmed_rights(self):
         with TemporaryDirectory() as temporary_directory:
@@ -556,6 +699,23 @@ class DatasetPipelineTests(SimpleTestCase):
         self.assertGreaterEqual(
             policy["aggregate_gate"]["phishing_precision_at_least"], 0.99
         )
+
+    def test_v2_holdout_report_preserves_failed_frozen_evaluation(self):
+        report_path = settings.BASE_DIR / "ml_models" / "V2_HOLDOUT_EVALUATION.json"
+        report_text = report_path.read_text(encoding="utf-8")
+        report = json.loads(report_text)
+        policy_path = settings.BASE_DIR / "ml_pipeline" / "v2_evaluation_policy.json"
+        model_path = settings.BASE_DIR / "ml_models" / "url_lexical_candidate_v2.npz"
+
+        self.assertEqual(report["candidate_sha256"], sha256_file(model_path))
+        self.assertEqual(report["policy_sha256"], sha256_file(policy_path))
+        self.assertEqual(report["candidate_status"], "REJECTED_BY_HOLDOUT_GATE")
+        self.assertFalse(report["thresholds_changed"])
+        self.assertFalse(report["all_required_gates_passed"])
+        self.assertFalse(report["promotion_ready"])
+        self.assertTrue(report["operational_gate_passed"])
+        self.assertIn("safe_precision", report["aggregate_gate_failures"])
+        self.assertNotRegex(report_text, r"https?://")
 
     def test_candidate_archive_writer_is_byte_reproducible(self):
         arrays = {

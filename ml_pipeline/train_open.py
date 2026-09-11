@@ -168,10 +168,14 @@ def _triage_metrics(
         "upper_threshold": round(upper_threshold, 8),
         "decisive_coverage": round(float((safe | phishing).mean()), 6),
         "unknown_rate": round(float(unknown.mean()), 6),
-        "safe_precision": round(float((safe & benign).sum() / safe_count), 6),
+        "safe_precision": (
+            round(float((safe & benign).sum() / safe_count), 6) if safe_count else 0.0
+        ),
         "phishing_precision": round(
             float((phishing & malicious).sum() / phishing_count), 6
-        ),
+        )
+        if phishing_count
+        else 0.0,
         "benign_recall": round(float((safe & benign).sum() / benign.sum()), 6),
         "phishing_recall": round(
             float((phishing & malicious).sum() / malicious.sum()), 6

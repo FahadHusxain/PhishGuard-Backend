@@ -10,7 +10,15 @@
     "reported_rows": 498255,
     "projected_columns": ["sha256", "url", "label", "date"],
     "local_filename": "phreshphish-v1.0.1-train-url-metadata.csv",
-    "output_sha256": "2daafbbe177615c26a6d4e7495e0ac0de2db936da3869ddee39be82f5bc3886d"
+    "output_sha256": "2daafbbe177615c26a6d4e7495e0ac0de2db936da3869ddee39be82f5bc3886d",
+    "holdout": {
+      "split": "test",
+      "shard_count": 21,
+      "reported_rows": 168060,
+      "projected_columns": ["sha256", "url", "label", "date"],
+      "local_filename": "phreshphish-v1.0.1-test-url-metadata.csv",
+      "output_sha256": "b3584ecb01d6a2b3d03438aaa020a16a0a209c4f8919558af9d6aada4c31d555"
+    }
   },
   "phishvn": {
     "repository_url": "https://data.mendeley.com/datasets/b97hxbxtpd/4",
@@ -25,6 +33,7 @@
     "csv_member": "data/dataset_url.csv",
     "reported_rows": 53116,
     "eligible_tiers": ["gold", "silver"],
-    "eligible_splits": ["train"]
+    "eligible_splits": ["train"],
+    "holdout_splits": ["val", "test"]
   }
 }

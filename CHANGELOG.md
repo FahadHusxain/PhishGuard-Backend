@@ -28,6 +28,8 @@ approved for merge.
   dual high-precision thresholds, and an explicit UNKNOWN decision region.
 - A pre-registered v2 holdout policy tied to the exact candidate hash, with
   contamination, quality, realistic-prevalence, size, and latency requirements.
+- A no-tuning evaluation on published unseen-domain holdouts, preserving the
+  v2 lexical candidate's rejection and aggregate error/operational evidence.
 
 ### Changed
 

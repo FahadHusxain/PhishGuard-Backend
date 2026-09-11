@@ -86,3 +86,16 @@ The resulting `url_lexical_candidate_v2.npz` is a non-executable NumPy archive.
 `V2_CANDIDATE_DEVELOPMENT.json` contains aggregate development evidence only;
 the candidate remains disconnected from production until all promotion gates
 pass.
+
+Evaluate the exact frozen candidate against the published holdouts once:
+
+```bash
+python -m ml_pipeline.acquire_open_corpus --include-holdout
+python -m ml_pipeline.evaluate_v2_holdout
+```
+
+The evaluator verifies the candidate and policy hashes, excludes every training
+domain, quarantines ambiguous holdout domains, and never changes a threshold.
+It records aggregate, source, temporal, structural, realistic-prevalence, and
+operational results without storing source URLs. The first v2 lexical candidate
+is permanently rejected by this gate; its report remains committed as evidence.

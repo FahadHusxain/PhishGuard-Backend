@@ -67,9 +67,17 @@
       "terms_url": "https://commoncrawl.org/terms-of-use"
     }
   },
+  "candidate_evaluations": {
+    "v2_lexical": {
+      "status": "rejected_by_holdout_gate",
+      "model_sha256": "c4f10d32f8b6df65f32fb76de37d4b43278c5f94ef44ca8fdf80c079e4c6216c",
+      "thresholds_changed_after_holdout": false,
+      "report": "../ml_models/V2_HOLDOUT_EVALUATION.json"
+    }
+  },
   "promotion_blockers": [
-    "Fit and calibrate candidates without accessing published holdout labels",
-    "Evaluate once on untouched temporal and cross-source holdouts",
-    "Complete error-slice, latency, memory, and shadow-mode review"
+    "Develop a materially different candidate without retuning against opened holdouts",
+    "Reserve a future temporal snapshot for unbiased final promotion evidence",
+    "Complete shadow-mode review before any production integration"
   ]
 }
