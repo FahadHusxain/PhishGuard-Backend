@@ -26,6 +26,8 @@ approved for merge.
   and verified PhishVN training rows, with automatic ambiguous-domain quarantine.
 - A reproducible v2 lexical baseline with domain-isolated balanced splits,
   dual high-precision thresholds, and an explicit UNKNOWN decision region.
+- A pre-registered v2 holdout policy tied to the exact candidate hash, with
+  contamination, quality, realistic-prevalence, size, and latency requirements.
 
 ### Changed
 

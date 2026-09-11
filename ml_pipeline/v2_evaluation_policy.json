@@ -1,0 +1,36 @@
+{
+  "policy_version": 1,
+  "candidate_sha256": "c4f10d32f8b6df65f32fb76de37d4b43278c5f94ef44ca8fdf80c079e4c6216c",
+  "thresholds_are_frozen": true,
+  "holdouts": [
+    "PhreshPhish v1.0.1 published test split",
+    "PhishVN v3.1.0 published validation and test splits"
+  ],
+  "contamination_policy": {
+    "exclude_any_registrable_domain_seen_in_training": true,
+    "quarantine_cross_label_holdout_domains": true,
+    "collapse_canonical_duplicate_urls": true,
+    "minimum_rows_per_reported_slice": 100
+  },
+  "aggregate_gate": {
+    "pr_auc_at_least": 0.95,
+    "safe_precision_at_least": 0.99,
+    "phishing_precision_at_least": 0.99,
+    "decisive_coverage_at_least": 0.5,
+    "false_safe_rate_at_most": 0.01,
+    "false_phishing_rate_at_most": 0.005
+  },
+  "per_source_gate": {
+    "minimum_rows_per_label": 100,
+    "roc_auc_at_least": 0.85,
+    "safe_precision_at_least": 0.95,
+    "phishing_precision_at_least": 0.95
+  },
+  "realistic_prevalence_scenarios": [0.0005, 0.001, 0.005, 0.01, 0.05],
+  "operational_gate": {
+    "artifact_size_bytes_at_most": 2097152,
+    "single_url_p95_latency_ms_at_most": 10.0,
+    "batch_throughput_urls_per_second_at_least": 1000.0
+  },
+  "promotion_rule": "Every aggregate, per-source, and operational gate must pass; no threshold or model parameter may change after holdout evaluation."
+}

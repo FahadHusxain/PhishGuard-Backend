@@ -534,6 +534,29 @@ class DatasetPipelineTests(SimpleTestCase):
             {"SAFE", "UNKNOWN", "PHISHING"},
         )
 
+    def test_v2_holdout_policy_is_frozen_to_candidate_before_evaluation(self):
+        policy = json.loads(
+            (settings.BASE_DIR / "ml_pipeline" / "v2_evaluation_policy.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        model_path = settings.BASE_DIR / "ml_models" / "url_lexical_candidate_v2.npz"
+
+        self.assertEqual(policy["candidate_sha256"], sha256_file(model_path))
+        self.assertTrue(policy["thresholds_are_frozen"])
+        self.assertEqual(len(policy["holdouts"]), 2)
+        self.assertTrue(
+            policy["contamination_policy"][
+                "exclude_any_registrable_domain_seen_in_training"
+            ]
+        )
+        self.assertGreaterEqual(
+            policy["aggregate_gate"]["safe_precision_at_least"], 0.99
+        )
+        self.assertGreaterEqual(
+            policy["aggregate_gate"]["phishing_precision_at_least"], 0.99
+        )
+
     def test_candidate_archive_writer_is_byte_reproducible(self):
         arrays = {
             "weights": np.asarray([[1.0, 2.0]], dtype=np.float32),

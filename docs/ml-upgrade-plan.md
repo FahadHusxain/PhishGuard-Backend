@@ -151,3 +151,9 @@ the internal development partition, SAFE precision is 99.45%, PHISHING
 precision is 99.57%, and decisive coverage is 67.02%; the remaining 32.98% is
 UNKNOWN. These are development results, not a production claim. The candidate
 is still disabled and the published holdout labels remain unopened.
+
+Before opening those labels, `ml_pipeline/v2_evaluation_policy.json` freezes the
+candidate hash, contamination exclusions, aggregate and per-source quality
+floors, realistic-prevalence scenarios, artifact-size limit, and inference
+latency requirements. No threshold or model parameter may change after this
+point; a failed required gate rejects the candidate rather than moving the goal.
