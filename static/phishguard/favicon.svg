@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="PhishGuard">
+  <rect width="64" height="64" rx="15" fill="#07111f"/>
+  <path d="M32 8 52 16v14c0 13-8 22-20 27C20 52 12 43 12 30V16l20-8Z" fill="#42d3ff"/>
+  <path d="M32 16 44 21v9c0 8-4 14-12 18-8-4-12-10-12-18v-9l12-5Z" fill="#0d1b2d"/>
+  <path d="m25 31 5 5 10-12" fill="none" stroke="#4ade80" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+</svg>

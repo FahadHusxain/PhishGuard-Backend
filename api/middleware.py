@@ -12,6 +12,52 @@ from django.http import JsonResponse
 from backend.request_context import current_request_id
 
 request_logger = logging.getLogger("phishguard.requests")
+
+
+class BrowserSecurityHeadersMiddleware:
+    """Apply a strict browser policy to application responses."""
+
+    CONTENT_SECURITY_POLICY = "; ".join(
+        (
+            "default-src 'self'",
+            "base-uri 'self'",
+            "connect-src 'self'",
+            "font-src 'self'",
+            "form-action 'self'",
+            "frame-ancestors 'none'",
+            "img-src 'self' data:",
+            "object-src 'none'",
+            "script-src 'self'",
+            "style-src 'self'",
+        )
+    )
+    DOCUMENTATION_POLICY = CONTENT_SECURITY_POLICY.replace(
+        "script-src 'self'",
+        "script-src 'self' 'unsafe-inline'",
+    ).replace(
+        "style-src 'self'",
+        "style-src 'self' 'unsafe-inline'",
+    )
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        policy = (
+            self.DOCUMENTATION_POLICY
+            if request.path == "/api/docs/"
+            else self.CONTENT_SECURITY_POLICY
+        )
+        response.setdefault("Content-Security-Policy", policy)
+        response.setdefault(
+            "Permissions-Policy",
+            "camera=(), geolocation=(), microphone=()",
+        )
+        response.setdefault("Referrer-Policy", "same-origin")
+        return response
+
+
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
 
 

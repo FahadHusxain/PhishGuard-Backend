@@ -147,6 +147,49 @@ class OperationalEndpointTests(APITestCase):
 
         self.assertEqual(response["X-Request-ID"], request_id)
 
+    @override_settings(DEBUG=True)
+    def test_browser_security_headers_are_applied(self):
+        response = self.client.get(reverse("home"))
+
+        policy = response["Content-Security-Policy"]
+        self.assertIn("default-src 'self'", policy)
+        self.assertIn("script-src 'self'", policy)
+        self.assertIn("style-src 'self'", policy)
+        self.assertIn("frame-ancestors 'none'", policy)
+        self.assertNotIn("'unsafe-inline'", policy)
+        self.assertEqual(
+            response["Permissions-Policy"],
+            "camera=(), geolocation=(), microphone=()",
+        )
+        self.assertEqual(response["Referrer-Policy"], "same-origin")
+
+    @override_settings(DEBUG=True)
+    def test_dashboard_uses_only_self_hosted_code_and_styles(self):
+        response = self.client.get(reverse("home"))
+
+        self.assertContains(response, "/static/phishguard/dashboard.css")
+        self.assertContains(response, "/static/phishguard/dashboard.js")
+        self.assertNotContains(response, '<script src="https://')
+        self.assertNotContains(response, '<link rel="stylesheet" href="https://')
+        self.assertNotContains(response, "onclick=")
+        self.assertNotContains(response, "<style>")
+        self.assertNotContains(response, "<script>")
+
+    @override_settings(DEBUG=True)
+    def test_api_documentation_uses_self_hosted_assets_with_scoped_csp(self):
+        response = self.client.get(reverse("api_docs"))
+
+        self.assertContains(response, "/static/drf_spectacular_sidecar/")
+        self.assertNotContains(response, "cdn.jsdelivr.net")
+        self.assertIn(
+            "script-src 'self' 'unsafe-inline'", response["Content-Security-Policy"]
+        )
+        dashboard_response = self.client.get(reverse("home"))
+        self.assertNotIn(
+            "'unsafe-inline'",
+            dashboard_response["Content-Security-Policy"],
+        )
+
     def test_unsafe_request_id_is_replaced(self):
         response = self.client.get(
             reverse("health_live"),

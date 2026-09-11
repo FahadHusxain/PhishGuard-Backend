@@ -1,83 +1,48 @@
-<!DOCTYPE html>
+{% load static %}
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PhishGuard Analytics</title>
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body { background-color: #0f172a; color: #00f3ff; font-family: 'Rajdhani', sans-serif; text-align: center; padding: 20px; }
-        h1 { font-size: 3rem; text-shadow: 0 0 10px #00f3ff; margin-bottom: 10px; }
-        .grid { display: flex; justify-content: center; gap: 20px; margin-bottom: 40px; }
-        .card { background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 10px; border: 1px solid #00f3ff; width: 200px; }
-        .number { font-size: 2.5rem; font-weight: bold; color: white; }
-        .label { font-size: 1rem; color: #94a3b8; }
-        
-        .chart-container { width: 80%; margin: 0 auto; background: rgba(0,0,0,0.3); padding: 20px; border-radius: 15px; }
-    </style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Aggregate PhishGuard scan statistics.">
+    <title>PhishGuard | Analytics</title>
+    <link rel="icon" href="{% static 'phishguard/favicon.svg' %}" type="image/svg+xml">
+    <link rel="stylesheet" href="{% static 'phishguard/dashboard.css' %}">
+    <script src="{% static 'phishguard/dashboard.js' %}" defer></script>
 </head>
-<body>
-
-    <h1>🛡️ PHISHGUARD LIVE INTEL</h1>
-    <p>Real-Time Threat Monitoring System</p>
-
-    <div class="grid">
-        <div class="card">
-            <div id="total" class="number">0</div>
-            <div class="label">Total Scans</div>
-        </div>
-        <div class="card">
-            <div id="threats" class="number" style="color: #ef4444;">0</div>
-            <div class="label">Threats Blocked</div>
-        </div>
-        <div class="card">
-            <div id="safe" class="number" style="color: #22c55e;">0</div>
-            <div class="label">Safe Sites</div>
-        </div>
-    </div>
-
-    <div class="chart-container">
-        <canvas id="scanChart"></canvas>
-    </div>
-
-    <script>
-        async function loadStats() {
-            // API se data mangwao
-            const response = await fetch('/api/stats/');
-            const data = await response.json();
-
-            // Cards Update karo
-            document.getElementById('total').innerText = data.total_scans;
-            document.getElementById('threats').innerText = data.phishing_count;
-            document.getElementById('safe').innerText = data.safe_count;
-
-            // Chart Banao
-            const ctx = document.getElementById('scanChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar', // Bar chart
-                data: {
-                    labels: ['Safe', 'Phishing', 'Whitelisted'],
-                    datasets: [{
-                        label: 'Scan Activity',
-                        data: [
-                            data.safe_count,
-                            data.phishing_count, 
-                            data.whitelist_count
-                        ],
-                        backgroundColor: ['#22c55e', '#ef4444', '#eab308'],
-                        borderColor: ['#22c55e', '#ef4444', '#eab308'],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, grid: { color: '#334155' } } }
-                }
-            });
-        }
-        loadStats();
-    </script>
+<body data-page="analytics">
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <header class="site-header">
+        <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">PG</span><span>PhishGuard</span></a>
+        <nav aria-label="Primary navigation"><a href="/">Dashboard</a><a href="/api/docs/">API docs</a></nav>
+    </header>
+    <main id="main-content" class="page-shell">
+        <section class="hero">
+            <p class="eyebrow">Aggregate data</p>
+            <h1>Scan analytics</h1>
+            <p class="hero-copy">A privacy-conscious summary of recorded verdicts.</p>
+        </section>
+        <section class="metrics" aria-label="Aggregate scan statistics">
+            <article class="metric-card"><span>Total scans</span><strong id="total-scans">0</strong></article>
+            <article class="metric-card danger"><span>Phishing</span><strong id="phishing-count">0</strong></article>
+            <article class="metric-card safe"><span>Safe</span><strong id="safe-count">0</strong></article>
+            <article class="metric-card"><span>Inconclusive</span><strong id="unknown-count">0</strong></article>
+        </section>
+        <section class="panel" aria-labelledby="distribution-title">
+            <div class="section-heading">
+                <div><p class="eyebrow">Current totals</p><h2 id="distribution-title">Verdict distribution</h2></div>
+                <span id="stats-status" class="status-chip">Loading</span>
+            </div>
+            <div class="progress-group">
+                <label for="safe-progress">Safe <span id="safe-percent">0%</span></label>
+                <progress id="safe-progress" class="safe-progress" max="100" value="0">0%</progress>
+                <label for="phishing-progress">Phishing <span id="phishing-percent">0%</span></label>
+                <progress id="phishing-progress" class="danger-progress" max="100" value="0">0%</progress>
+                <label for="unknown-progress">Inconclusive <span id="unknown-percent">0%</span></label>
+                <progress id="unknown-progress" max="100" value="0">0%</progress>
+            </div>
+        </section>
+    </main>
+    <footer><p>PhishGuard · Aggregate statistics only</p></footer>
 </body>
 </html>
