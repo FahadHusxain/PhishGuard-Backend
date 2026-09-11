@@ -236,3 +236,11 @@ It cannot provide benign labels. Common Crawl may supply recent URL observations
 but crawl presence is not benign ground truth and its terms place responsibility
 for accuracy and third-party rights on the user. Neither source alone satisfies
 the frozen evaluation contract.
+
+`ml_pipeline.evaluate_v4_future` implements that contract as an offline,
+fail-closed evaluator. It verifies the frozen policy and all model hashes,
+rejects unsafe manifest paths and stale or malformed rows, removes training
+domains and ambiguous groups, checks source diversity, and reports aggregate,
+per-source, structural-slice, realistic-prevalence, artifact-size, and latency
+evidence. It cannot run against the placeholder manifest, and it never stores
+evaluated URLs in its report.

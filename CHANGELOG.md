@@ -38,6 +38,8 @@ approved for merge.
   artifacts, portable inference parity, and an explicit future-data blocker.
 - A hash-bound future-evaluation policy and non-runnable manifest template that
   require prospective timestamps, defensible labels, and reviewed data rights.
+- A fail-closed, no-tuning v4 future evaluator with checksum, chronology,
+  provenance, contamination, source-quality, metric, and operational gates.
 
 ### Changed
 

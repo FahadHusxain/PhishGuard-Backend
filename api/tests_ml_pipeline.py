@@ -52,6 +52,14 @@ from ml_pipeline.evaluate_v2_holdout import (
     _score,
     _slices,
 )
+from ml_pipeline.evaluate_v4_future import (
+    FROZEN_POLICY_SHA256,
+    FutureHoldoutError,
+    _future_samples,
+    _require_data_gate,
+    _timestamp,
+    evaluate_future,
+)
 from ml_pipeline.structural import (
     FEATURE_NAMES as STRUCTURAL_FEATURE_NAMES,
 )
@@ -76,7 +84,185 @@ from ml_pipeline.train_open import (
 from ml_pipeline.train_structural import _serialized_trees
 
 
+def _future_manifest(directory: Path, candidate_sha256: str) -> Path:
+    files = []
+    fixtures = {
+        "future-benign": (
+            "benign",
+            ["https://safe-one.com/path", "https://safe-two.org/page"],
+        ),
+        "future-phishing": (
+            "phishing",
+            ["https://bad-one.net/login", "https://bad-two.co.uk/verify"],
+        ),
+    }
+    for source_id, (label, urls) in fixtures.items():
+        path = directory / f"{source_id}.csv"
+        path.write_text(
+            "url,label,observed_at\n"
+            + "".join(f"{url},{label},2026-09-13T00:00:00+00:00\n" for url in urls),
+            encoding="utf-8",
+        )
+        files.append(
+            {
+                "source_id": source_id,
+                "local_filename": path.name,
+                "sha256": sha256_file(path),
+                "byte_size": path.stat().st_size,
+                "source_url": f"https://sources.example/{source_id}",
+                "terms_url": f"https://sources.example/{source_id}/terms",
+                "evaluation_rights_reviewed": True,
+                "label_method": "controlled test fixture",
+                "expected_columns": ["url", "label", "observed_at"],
+            }
+        )
+    manifest_path = directory / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "manifest_version": 1,
+                "snapshot_id": "future-fixture-2026-09-13",
+                "candidate_sha256": candidate_sha256,
+                "acquired_at": "2026-09-13T00:00:00+00:00",
+                "files": files,
+            }
+        ),
+        encoding="utf-8",
+    )
+    return manifest_path
+
+
 class DatasetPipelineTests(SimpleTestCase):
+    def test_future_holdout_loader_enforces_time_rights_and_checksums(self):
+        policy = json.loads(
+            (
+                settings.BASE_DIR / "ml_pipeline" / "v4_future_evaluation_policy.json"
+            ).read_text(encoding="utf-8")
+        )
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            manifest_path = _future_manifest(directory, policy["candidate_sha256"])
+
+            samples, evidence = _future_samples(directory, manifest_path, policy)
+
+            self.assertEqual(len(samples), 4)
+            self.assertEqual(evidence["snapshot_id"], "future-fixture-2026-09-13")
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["files"][0]["evaluation_rights_reviewed"] = False
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            with self.assertRaises(FutureHoldoutError):
+                _future_samples(directory, manifest_path, policy)
+
+        with self.assertRaises(FutureHoldoutError):
+            _timestamp("2026-09-13T00:00:00", "test_time")
+
+    def test_future_holdout_data_gate_rejects_insufficient_evidence(self):
+        policy = {
+            "data_contract": {
+                "minimum_retained_rows_per_label": 1,
+                "minimum_independent_sources_total": 2,
+                "minimum_independent_sources_per_label": 1,
+            }
+        }
+        records = [
+            HoldoutRecord(
+                "https://safe.example/", 0, {"only-source"}, None, "safe.example"
+            )
+        ]
+
+        with self.assertRaises(FutureHoldoutError):
+            _require_data_gate(records, policy)
+
+    def test_future_evaluator_writes_aggregate_no_tuning_report(self):
+        policy_source = (
+            settings.BASE_DIR / "ml_pipeline" / "v4_future_evaluation_policy.json"
+        )
+        policy = json.loads(policy_source.read_text(encoding="utf-8"))
+        policy["data_contract"].update(
+            {
+                "minimum_retained_rows_per_label": 1,
+                "minimum_independent_sources_total": 2,
+                "minimum_independent_sources_per_label": 1,
+                "minimum_rows_per_reported_slice": 1,
+            }
+        )
+        policy["aggregate_gate"] = {
+            "pr_auc_at_least": 0,
+            "safe_precision_at_least": 0,
+            "phishing_precision_at_least": 0,
+            "decisive_coverage_at_least": 0,
+            "false_safe_rate_at_most": 1,
+            "false_phishing_rate_at_most": 1,
+        }
+        policy["source_quality_gate"] = {
+            "minimum_retained_rows": 1,
+            "false_safe_rate_at_most": 1,
+            "false_phishing_rate_at_most": 1,
+        }
+        policy["operational_gate"] = {
+            "total_artifact_size_bytes_at_most": 10_000_000,
+            "single_url_p95_latency_ms_at_most": 100,
+            "batch_throughput_urls_per_second_at_least": 1,
+        }
+        lexical_path = settings.BASE_DIR / "ml_models" / "url_lexical_candidate_v2.npz"
+        structural_path = (
+            settings.BASE_DIR / "ml_models" / "url_structural_candidate_v3.npz"
+        )
+        model_path = settings.BASE_DIR / "ml_models" / "url_ensemble_candidate_v4.npz"
+        fake_candidate = SimpleNamespace(
+            lower_threshold=0.2,
+            upper_threshold=0.8,
+            predict_probabilities=lambda urls: np.asarray(
+                [0.01 if "safe" in url else 0.99 for url in urls]
+            ),
+        )
+        with TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            policy_path = directory / "policy.json"
+            policy_path.write_text(json.dumps(policy), encoding="utf-8")
+            manifest_path = _future_manifest(directory, policy["candidate_sha256"])
+            report_path = directory / "report.json"
+            with (
+                patch(
+                    "ml_pipeline.evaluate_v4_future.FROZEN_POLICY_SHA256",
+                    sha256_file(policy_path),
+                ),
+                patch(
+                    "ml_pipeline.evaluate_v4_future._training_groups",
+                    return_value=set(),
+                ),
+                patch(
+                    "ml_pipeline.evaluate_v4_future.EnsembleCandidate",
+                    return_value=fake_candidate,
+                ),
+                patch(
+                    "ml_pipeline.evaluate_v4_future._benchmark",
+                    return_value={
+                        "artifact_size_bytes": model_path.stat().st_size,
+                        "single_url_median_latency_ms": 1,
+                        "single_url_p95_latency_ms": 2,
+                        "batch_rows": 4,
+                        "batch_throughput_urls_per_second": 1000,
+                    },
+                ),
+            ):
+                report = evaluate_future(
+                    directory,
+                    manifest_path,
+                    policy_path,
+                    model_path,
+                    lexical_path,
+                    structural_path,
+                    report_path,
+                )
+
+            stored = report_path.read_text(encoding="utf-8")
+
+        self.assertTrue(report["all_automated_gates_passed"])
+        self.assertFalse(report["thresholds_changed"])
+        self.assertFalse(report["promotion_ready"])
+        self.assertNotRegex(stored, r"https?://")
+
     def test_ensemble_candidate_is_hash_bound_and_three_way(self):
         lexical_path = settings.BASE_DIR / "ml_models" / "url_lexical_candidate_v2.npz"
         structural_path = (
@@ -929,6 +1115,7 @@ class DatasetPipelineTests(SimpleTestCase):
             policy["candidate_commit"],
             "b62de62baef9cc12a0a90b1dce411678ed82b997",
         )
+        self.assertEqual(FROZEN_POLICY_SHA256, sha256_file(policy_path))
         self.assertEqual(policy["candidate_sha256"], development_report["model_sha256"])
         self.assertEqual(
             policy["component_sha256"], development_report["component_sha256"]

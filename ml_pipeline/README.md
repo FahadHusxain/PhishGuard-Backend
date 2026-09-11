@@ -125,3 +125,19 @@ stacks the lexical and structural raw scores. V4 passed every pre-registered
 development gate and improved PR-AUC and decisive coverage over v2. It remains
 an offline candidate: opened historical holdouts are prohibited, and a new
 future temporal holdout plus shadow review are required before promotion.
+
+When a qualifying prospective snapshot exists, copy
+`future_holdout_manifest.example.json` into ignored `.ml-data/`, replace every
+placeholder with verified evidence, and run:
+
+```bash
+python -m ml_pipeline.evaluate_v4_future \
+  --manifest .ml-data/future_holdout_manifest.json
+```
+
+The evaluator is bound to the exact committed policy hash. Before scoring, it
+requires future timezone-aware observation dates, reviewed evaluation rights,
+exact file sizes and SHA-256 hashes, safe local filenames, sufficient rows and
+source diversity, and removal of all training-domain overlap. It writes only
+aggregate evidence. The example manifest is intentionally invalid and must
+never be treated as a completed data review.
