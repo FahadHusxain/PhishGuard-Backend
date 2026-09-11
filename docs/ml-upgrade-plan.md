@@ -100,7 +100,8 @@ The source registry records the current evidence:
 The legacy holdings remain unsuitable by themselves. The separately pinned
 open corpus now passes the v2 training gate after malformed URLs and every
 cross-label registrable domain are quarantined. Model promotion remains blocked
-until untouched holdout evaluation and shadow-mode review succeed.
+because v2 failed its frozen holdout gate and no later candidate has passed
+development, a new future holdout, and shadow-mode review.
 
 ## Candidate source decisions
 
@@ -150,7 +151,7 @@ Two thresholds were frozen on calibration data at a 99.5% precision floor. On
 the internal development partition, SAFE precision is 99.45%, PHISHING
 precision is 99.57%, and decisive coverage is 67.02%; the remaining 32.98% is
 UNKNOWN. These are development results, not a production claim. The candidate
-is still disabled and the published holdout labels remain unopened.
+was kept disabled before the published holdout labels were opened.
 
 Before opening those labels, `ml_pipeline/v2_evaluation_policy.json` freezes the
 candidate hash, contamination exclusions, aggregate and per-source quality
@@ -177,3 +178,23 @@ No threshold will be retuned against these opened holdouts. They can remain a
 historical benchmark, but a materially different candidate must be developed
 using training/development evidence only and must reserve a new future temporal
 snapshot for final unbiased promotion evidence.
+
+## V3 structural candidate
+
+The second modeling-ladder candidate uses 27 explicit URL-structure features
+and histogram gradient boosting. It deliberately excludes the HTTPS scheme as
+a feature, performs no DNS or page retrieval, and is stored as validated
+numeric tree arrays rather than an executable serialized estimator. Training
+and selection used only the original fit, calibration, and development
+partitions; the opened historical holdouts were not scored.
+
+This candidate is **rejected by development evidence**. Development ROC-AUC was
+0.966914, PR-AUC was 0.958649, SAFE precision was 0.987412, PHISHING precision
+was 0.993417, and decisive coverage was 0.510224. Both precisions missed the
+existing 99.5% target, and every primary comparison metric was below v2's
+internal development result. The candidate is retained only as reproducible
+research evidence and will not consume a new holdout evaluation.
+
+The next planned experiment is a calibrated lexical/structural ensemble. It
+may be selected only from training/development evidence and cannot be promoted
+without a genuinely new future temporal snapshot.

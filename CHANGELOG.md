@@ -30,6 +30,8 @@ approved for merge.
   contamination, quality, realistic-prevalence, size, and latency requirements.
 - A no-tuning evaluation on published unseen-domain holdouts, preserving the
   v2 lexical candidate's rejection and aggregate error/operational evidence.
+- A safe, reproducible structural-feature gradient-boosting experiment, with
+  native/portable inference parity and a documented development rejection.
 
 ### Changed
 

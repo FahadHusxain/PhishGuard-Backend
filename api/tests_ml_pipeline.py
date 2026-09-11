@@ -10,6 +10,7 @@ from unittest.mock import patch
 import numpy as np
 from django.conf import settings
 from django.test import SimpleTestCase
+from sklearn.ensemble import HistGradientBoostingClassifier
 
 from ml_pipeline import acquire_open_corpus, audit_current, audit_open
 from ml_pipeline.audit_current import _phishtank_samples
@@ -50,6 +51,13 @@ from ml_pipeline.evaluate_v2_holdout import (
     _score,
     _slices,
 )
+from ml_pipeline.structural import (
+    FEATURE_NAMES as STRUCTURAL_FEATURE_NAMES,
+)
+from ml_pipeline.structural import (
+    StructuralCandidate,
+    structural_features,
+)
 from ml_pipeline.train import (
     FEATURE_COUNT,
     _load_splits,
@@ -62,9 +70,89 @@ from ml_pipeline.train_open import (
     _triage_metrics,
     _upper_threshold,
 )
+from ml_pipeline.train_structural import _serialized_trees
 
 
 class DatasetPipelineTests(SimpleTestCase):
+    def test_structural_features_are_explicit_finite_and_scheme_neutral(self):
+        urls = [
+            "http://127.0.0.1:8080/login?verify=1",
+            "https://xn--bcher-kva.example/account",
+        ]
+
+        features = structural_features(urls)
+        positions = {name: index for index, name in enumerate(STRUCTURAL_FEATURE_NAMES)}
+
+        self.assertEqual(features.shape, (2, len(STRUCTURAL_FEATURE_NAMES)))
+        self.assertTrue(np.all(np.isfinite(features)))
+        self.assertEqual(features[0, positions["ip_host"]], 1)
+        self.assertEqual(features[0, positions["explicit_port"]], 1)
+        self.assertEqual(features[1, positions["punycode_host"]], 1)
+        self.assertNotIn("https", STRUCTURAL_FEATURE_NAMES)
+
+    def test_structural_features_reject_malformed_urls(self):
+        for url in ("not-a-url", "ftp://example.com/", "https://example.com:bad/"):
+            with self.subTest(url=url), self.assertRaises(CandidateModelError):
+                structural_features([url])
+
+    def test_structural_candidate_matches_native_histogram_boosting_scores(self):
+        urls = [
+            f"https://safe{index}.example/path"
+            if index % 2 == 0
+            else f"http://192.0.2.{index % 250}/account/verify?id={index}"
+            for index in range(80)
+        ]
+        labels = np.asarray([index % 2 for index in range(80)], dtype=np.int8)
+        matrix = structural_features(urls)
+        model = HistGradientBoostingClassifier(
+            max_iter=4,
+            max_leaf_nodes=5,
+            min_samples_leaf=2,
+            random_state=7,
+        ).fit(matrix, labels)
+        arrays = {
+            **_serialized_trees(model),
+            "baseline": np.asarray(model._baseline_prediction, dtype=np.float64),
+            "calibration_coefficient": np.asarray([[1.0]]),
+            "calibration_intercept": np.asarray([0.0]),
+            "feature_names": np.asarray(STRUCTURAL_FEATURE_NAMES),
+            "lower_threshold": np.asarray([0.25]),
+            "upper_threshold": np.asarray([0.75]),
+        }
+        with TemporaryDirectory() as temporary_directory:
+            model_path = Path(temporary_directory) / "structural.npz"
+            _write_deterministic_npz(model_path, arrays)
+            candidate = StructuralCandidate(model_path)
+
+            portable = candidate.decision_function(urls)
+
+        np.testing.assert_allclose(
+            portable, model.decision_function(matrix), atol=1e-12
+        )
+
+    def test_structural_candidate_rejects_an_invalid_tree(self):
+        arrays = {
+            "values": np.asarray([0.0]),
+            "features": np.asarray([0]),
+            "thresholds": np.asarray([1.0]),
+            "left": np.asarray([0]),
+            "right": np.asarray([0]),
+            "is_leaf": np.asarray([0]),
+            "offsets": np.asarray([0, 1]),
+            "baseline": np.asarray([0.0]),
+            "calibration_coefficient": np.asarray([[1.0]]),
+            "calibration_intercept": np.asarray([0.0]),
+            "feature_names": np.asarray(STRUCTURAL_FEATURE_NAMES),
+            "lower_threshold": np.asarray([0.25]),
+            "upper_threshold": np.asarray([0.75]),
+        }
+        with TemporaryDirectory() as temporary_directory:
+            model_path = Path(temporary_directory) / "invalid.npz"
+            _write_deterministic_npz(model_path, arrays)
+
+            with self.assertRaises(CandidateModelError):
+                StructuralCandidate(model_path)
+
     def test_v2_source_registry_records_training_and_promotion_state(self):
         registry = json.loads(
             (settings.BASE_DIR / "ml_pipeline" / "source_registry.json").read_text(
@@ -93,6 +181,15 @@ class DatasetPipelineTests(SimpleTestCase):
         self.assertFalse(
             registry["candidate_evaluations"]["v2_lexical"][
                 "thresholds_changed_after_holdout"
+            ]
+        )
+        self.assertEqual(
+            registry["candidate_evaluations"]["v3_structural"]["status"],
+            "rejected_by_development_evidence",
+        )
+        self.assertFalse(
+            registry["candidate_evaluations"]["v3_structural"][
+                "opened_holdouts_used_for_training_or_selection"
             ]
         )
 
@@ -699,6 +796,29 @@ class DatasetPipelineTests(SimpleTestCase):
         self.assertGreaterEqual(
             policy["aggregate_gate"]["phishing_precision_at_least"], 0.99
         )
+
+    def test_v3_structural_artifact_matches_rejected_development_report(self):
+        model_path = settings.BASE_DIR / "ml_models" / "url_structural_candidate_v3.npz"
+        report = json.loads(
+            (
+                settings.BASE_DIR / "ml_models" / "V3_STRUCTURAL_DEVELOPMENT.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(report["model_sha256"], sha256_file(model_path))
+        self.assertEqual(report["candidate_status"], "REJECTED_BY_DEVELOPMENT_EVIDENCE")
+        self.assertFalse(report["opened_holdouts_used_for_training_or_selection"])
+        self.assertFalse(report["promotion_ready"])
+        self.assertTrue(
+            all(not passed for passed in report["development_gate"].values())
+        )
+        self.assertTrue(
+            all(
+                comparison["delta"] < 0
+                for comparison in report["v2_development_comparison"].values()
+            )
+        )
+        StructuralCandidate(model_path)
 
     def test_v2_holdout_report_preserves_failed_frozen_evaluation(self):
         report_path = settings.BASE_DIR / "ml_models" / "V2_HOLDOUT_EVALUATION.json"

@@ -73,10 +73,16 @@
       "model_sha256": "c4f10d32f8b6df65f32fb76de37d4b43278c5f94ef44ca8fdf80c079e4c6216c",
       "thresholds_changed_after_holdout": false,
       "report": "../ml_models/V2_HOLDOUT_EVALUATION.json"
+    },
+    "v3_structural": {
+      "status": "rejected_by_development_evidence",
+      "model_sha256": "25bf55bb8874378837ff85412ff6e0cee8f0754bfe643e7c0a52d171eabf66aa",
+      "opened_holdouts_used_for_training_or_selection": false,
+      "report": "../ml_models/V3_STRUCTURAL_DEVELOPMENT.json"
     }
   },
   "promotion_blockers": [
-    "Develop a materially different candidate without retuning against opened holdouts",
+    "Develop the pre-planned ensemble or another materially different candidate without retuning against opened holdouts",
     "Reserve a future temporal snapshot for unbiased final promotion evidence",
     "Complete shadow-mode review before any production integration"
   ]

@@ -99,3 +99,17 @@ domain, quarantines ambiguous holdout domains, and never changes a threshold.
 It records aggregate, source, temporal, structural, realistic-prevalence, and
 operational results without storing source URLs. The first v2 lexical candidate
 is permanently rejected by this gate; its report remains committed as evidence.
+
+Train the next pre-planned structural candidate without reading any holdout:
+
+```bash
+python -m ml_pipeline.train_structural
+```
+
+This experiment extracts 27 explicit, offline URL-structure features and fits
+histogram gradient boosting. The trainer serializes only numeric tree arrays to
+a deterministic NPZ file and verifies its portable scorer against
+scikit-learn's native decisions. The v3 candidate is rejected by development
+evidence: it missed the existing precision floor and underperformed v2 on all
+primary internal comparison metrics. Its artifact and aggregate report remain
+disconnected from production for reproducibility.
