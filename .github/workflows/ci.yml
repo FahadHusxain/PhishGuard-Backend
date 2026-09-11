@@ -77,13 +77,29 @@ jobs:
   container:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      DJANGO_SECRET_KEY: ci-only-container-secret-9f4c4f268ea34ad0b0d105ca83758f92
+      POSTGRES_PASSWORD: ci-only-database-password
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
 
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
+
       - name: Build production image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          push: false
-          tags: phishguard-backend:ci
+        run: docker compose build
+
+      - name: Exercise production-shaped stack
+        run: docker compose up --detach --no-build --wait --wait-timeout 120
+
+      - name: Verify application response
+        run: curl --fail --show-error http://127.0.0.1:8000/health/ready/
+
+      - name: Show service logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Stop production-shaped stack
+        if: always()
+        run: docker compose down --volumes --remove-orphans

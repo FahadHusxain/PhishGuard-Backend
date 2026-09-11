@@ -13,12 +13,14 @@ env/
 .env
 .env.*
 !.env.example
+!.env.compose.example
 
 # Django
 db.sqlite3
 db.sqlite3-journal
 staticfiles/
 media/
+backups/
 ml_models/tokenizer.pickle
 
 # Test, coverage, and type-checking caches

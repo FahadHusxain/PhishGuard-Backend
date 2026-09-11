@@ -135,6 +135,22 @@ docker run --rm -p 8000:8000 --env-file .env phishguard-backend
 Set `WEB_CONCURRENCY`, `GUNICORN_THREADS`, and `PORT` to tune the server for the
 hosting environment. Never bake a production `.env` file into the image.
 
+For a production-shaped local stack with the application, PostgreSQL, Redis,
+health-gated migrations, persistent database storage, and localhost-only port
+binding:
+
+```bash
+cp .env.compose.example .env.compose
+# Replace the placeholder secrets in .env.compose before continuing.
+docker compose --env-file .env.compose up --detach --build --wait
+curl --fail http://127.0.0.1:8000/health/ready/
+```
+
+The VS Code Containers extension can manage this stack once Docker Desktop is
+installed and running. See [the operations runbook](docs/operations.md) for
+logs, shutdown, backup, restore, hosted-environment requirements, and incident
+checks.
+
 ## Detection engine
 
 The URL API currently defaults to the explainable rules engine. The historical
