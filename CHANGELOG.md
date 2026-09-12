@@ -44,6 +44,8 @@ approved for merge.
   extension layout by enforcing its reviewed 400-pixel tool width.
 - Rebuilt web and extension result composition around circular risk
   instruments, segmented risk vectors, case codes, and terminal-framed input.
+- Completed owner-side visual and keyboard review of the final dashboard and
+  browser-extension interfaces.
 - A provenance-aware version 2 ML corpus contract that blocks training on
   unlicensed, source-confounded, representation-mismatched, or undated data.
 - A reproducible aggregate readiness audit for locally held ML sources, with

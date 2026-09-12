@@ -49,9 +49,10 @@ grant are documented separately in `THIRD_PARTY_NOTICES.md`.
    attributed, checksum-pinned source and deterministic transformation. The
    removed files remain in Git history and must not be restored without proof
    of origin and redistribution rights.
-3. **Accessibility sign-off:** functional desktop and extension review is
-   complete. A final keyboard-only and contrast review remains required before
-   claiming accessibility conformance.
+3. **Completed UI sign-off:** Asad Abbas reviewed the final desktop dashboard
+   and extension redesign, confirmed keyboard navigation and validation
+   behavior, and accepted the fixed-width popup and threat-instrument layout on
+   2026-09-13. This is project review evidence, not a formal WCAG certification.
 4. **ML promotion:** v4 remains shadow-only until a qualifying prospective
    holdout and controlled shadow review pass the frozen policy.
 

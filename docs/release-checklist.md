@@ -11,7 +11,8 @@ for production. Complete it against one immutable candidate commit.
 - [ ] Intended changes and known limitations are understandable to a reviewer.
 - [ ] Architecture, threat model, API schema, model cards, and operations runbook
       match the candidate.
-- [ ] Final UI review is complete on desktop and mobile.
+- [x] Final UI review is complete for the desktop dashboard and narrow browser
+      extension popup, including keyboard navigation and result states.
 - [ ] The historical and candidate ML models remain disabled unless a separate,
       documented promotion review has passed.
 
