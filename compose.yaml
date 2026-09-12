@@ -15,6 +15,7 @@ x-app-environment: &app-environment
   DATABASE_URL: postgresql://${POSTGRES_USER:-phishguard}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.compose}@database:5432/${POSTGRES_DB:-phishguard}
   CACHE_URL: redis://cache:6379/1
   PHISHGUARD_NUM_PROXIES: "0"
+  PHISHGUARD_ML_SHADOW_ENABLED: ${PHISHGUARD_ML_SHADOW_ENABLED:-false}
 
 x-app-service: &app-service
   build:

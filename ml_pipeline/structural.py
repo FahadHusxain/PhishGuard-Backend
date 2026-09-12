@@ -9,7 +9,7 @@ from urllib.parse import urlsplit
 
 import numpy as np
 
-from ml_pipeline.candidate import CandidateModelError
+from ml_pipeline.errors import CandidateModelError
 
 FEATURE_NAMES = (
     "url_length",

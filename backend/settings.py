@@ -248,6 +248,7 @@ if PHISHGUARD_SCAN_RETENTION_DAYS < 1:
         "PHISHGUARD_SCAN_RETENTION_DAYS must be a positive integer."
     )
 PHISHGUARD_ML_ENABLED = env_bool("PHISHGUARD_ML_ENABLED", default=False)
+PHISHGUARD_ML_SHADOW_ENABLED = env_bool("PHISHGUARD_ML_SHADOW_ENABLED", default=False)
 PHISHGUARD_MODEL_PATH = Path(
     os.getenv(
         "PHISHGUARD_MODEL_PATH",
@@ -258,6 +259,24 @@ PHISHGUARD_TOKENIZER_PATH = Path(
     os.getenv(
         "PHISHGUARD_TOKENIZER_PATH",
         BASE_DIR / "ml_models" / "tokenizer.json",
+    )
+)
+PHISHGUARD_V4_ENSEMBLE_PATH = Path(
+    os.getenv(
+        "PHISHGUARD_V4_ENSEMBLE_PATH",
+        BASE_DIR / "ml_models" / "url_ensemble_candidate_v4.npz",
+    )
+)
+PHISHGUARD_V4_LEXICAL_PATH = Path(
+    os.getenv(
+        "PHISHGUARD_V4_LEXICAL_PATH",
+        BASE_DIR / "ml_models" / "url_lexical_candidate_v2.npz",
+    )
+)
+PHISHGUARD_V4_STRUCTURAL_PATH = Path(
+    os.getenv(
+        "PHISHGUARD_V4_STRUCTURAL_PATH",
+        BASE_DIR / "ml_models" / "url_structural_candidate_v3.npz",
     )
 )
 PHISHGUARD_ML_WEIGHT = float(os.getenv("PHISHGUARD_ML_WEIGHT", "0.6"))

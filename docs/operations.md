@@ -90,6 +90,21 @@ Set `PHISHGUARD_NUM_PROXIES` to the exact number of trusted proxies in front of
 Django. Keep the Compose value at zero because clients connect directly during
 local testing.
 
+## Candidate shadow evaluation
+
+Leave `PHISHGUARD_ML_SHADOW_ENABLED=false` during normal use. After the frozen
+future-data gate passes, enable it in a controlled environment and restart the
+web service. `python manage.py check` fails closed if any v4 artifact is missing
+or has a different checksum. API responses include `shadow_*` diagnostic fields
+while active verdict fields remain unchanged.
+
+Aggregate the `shadow_prediction` structured log events to review agreement and
+UNKNOWN behavior. Calculate false-safe and false-phishing rates only in a
+controlled labeled evaluation; the privacy-reduced operational events
+intentionally contain no URL or label. Disable the flag immediately if latency
+or error rates regress; this requires no database or model rollback because
+shadow mode never controls the user-visible verdict.
+
 ## Incident checks
 
 When the service is unhealthy:

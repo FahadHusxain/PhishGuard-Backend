@@ -40,6 +40,8 @@ approved for merge.
   require prospective timestamps, defensible labels, and reviewed data rights.
 - A fail-closed, no-tuning v4 future evaluator with checksum, chronology,
   provenance, contamination, source-quality, metric, and operational gates.
+- A checksum-bound, NumPy-only v4 shadow runtime with training-implementation
+  parity tests and privacy-reduced comparison logging that cannot change verdicts.
 - A minimal-permission Chromium Manifest V3 extension for current-tab and
   pasted-link analysis, with configurable HTTPS backend access and CI checks.
 

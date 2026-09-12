@@ -33,7 +33,11 @@ from backend.request_context import current_request_id
 from backend.settings import env_bool, env_list
 
 from .admin import ScanLogAdmin, WhitelistAuditEventAdmin
-from .checks import shared_throttle_cache_check, throttle_rate_configuration_check
+from .checks import (
+    shadow_model_configuration_check,
+    shared_throttle_cache_check,
+    throttle_rate_configuration_check,
+)
 from .dashboard import DASHBOARD_CACHE_KEY, get_dashboard_aggregates
 from .domains import (
     normalize_hostname,
@@ -41,7 +45,7 @@ from .domains import (
     whitelist_candidates,
 )
 from .ml_classifier import URLCNNClassifier
-from .ml_logic import predict_url_security
+from .ml_logic import _load_shadow_classifier, predict_url_security
 from .models import ScanLog, WhitelistAuditEvent, WhitelistDomain
 from .throttles import (
     AdministrationRateThrottle,
@@ -239,6 +243,27 @@ class StructuredLoggingTests(SimpleTestCase):
         self.assertEqual(payload["event"], "test_event")
         self.assertEqual(payload["request_id"], "request-123")
         self.assertEqual(payload["level"], "INFO")
+
+    def test_shadow_metadata_is_structured_without_a_url(self):
+        record = logging.LogRecord(
+            name="api.ml_logic",
+            level=logging.INFO,
+            pathname=__file__,
+            lineno=1,
+            msg="shadow_prediction",
+            args=(),
+            exc_info=None,
+        )
+        record.active_status = "UNKNOWN"
+        record.shadow_status = "SAFE"
+        record.shadow_risk_score = 1.15
+        record.shadow_agreement = False
+
+        payload = json.loads(JSONFormatter().format(record))
+
+        self.assertEqual(payload["shadow_status"], "SAFE")
+        self.assertEqual(payload["shadow_risk_score"], 1.15)
+        self.assertNotIn("url", payload)
 
 
 class APIContractTests(APITestCase):
@@ -965,6 +990,35 @@ class MLClassifierTests(SimpleTestCase):
         self.assertEqual(result["engine"], "rules-only")
         self.assertEqual(result["status"], "UNKNOWN")
         self.assertEqual(result["confidence"], 0)
+
+    def test_shadow_prediction_is_reported_without_changing_active_verdict(self):
+        with (
+            patch("api.ml_logic._model_probability", return_value=None),
+            patch(
+                "api.ml_logic._shadow_prediction",
+                return_value=("PHISHING", 98.25),
+            ),
+        ):
+            result = predict_url_security("https://ordinary-example.test")
+
+        self.assertEqual(result["status"], "UNKNOWN")
+        self.assertEqual(result["engine"], "rules-only")
+        self.assertEqual(result["shadow_engine"], "v4-ensemble")
+        self.assertEqual(result["shadow_status"], "PHISHING")
+        self.assertEqual(result["shadow_risk_score"], 98.25)
+
+    @override_settings(PHISHGUARD_ML_SHADOW_ENABLED=False)
+    def test_shadow_loader_is_disabled_by_default(self):
+        _load_shadow_classifier.cache_clear()
+        self.addCleanup(_load_shadow_classifier.cache_clear)
+        self.assertIsNone(_load_shadow_classifier())
+
+    @override_settings(PHISHGUARD_ML_SHADOW_ENABLED=True)
+    def test_shadow_configuration_check_fails_closed(self):
+        with patch("api.checks._load_shadow_classifier", return_value=None) as loader:
+            loader.cache_clear = lambda: None
+            errors = shadow_model_configuration_check(None)
+        self.assertEqual(errors[0].id, "api.E002")
 
     def test_unseen_credential_lure_url_triggers_multiple_independent_signals(self):
         with patch("api.ml_logic._model_probability", return_value=None):

@@ -244,3 +244,11 @@ domains and ambiguous groups, checks source diversity, and reports aggregate,
 per-source, structural-slice, realistic-prevalence, artifact-size, and latency
 evidence. It cannot run against the placeholder manifest, and it never stores
 evaluated URLs in its report.
+
+The exact frozen v4 bundle now also has an opt-in, NumPy-only runtime adapter.
+It verifies the ensemble and both component hashes and has numerical parity
+tests against the training implementation. Shadow mode records only active and
+candidate verdicts, candidate risk, and agreement; it does not log submitted
+URLs and cannot alter the API's active verdict. This completes the runtime
+engineering needed for later shadow review without falsely promoting v4 before
+new prospective evidence exists.

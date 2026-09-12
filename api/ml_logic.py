@@ -1,4 +1,4 @@
-"""Hybrid URL risk scoring backed by the committed character-level CNN."""
+"""Active URL risk scoring with optional integrity-checked shadow inference."""
 
 import ipaddress
 import logging
@@ -8,7 +8,10 @@ from urllib.parse import unquote, urlsplit
 
 from django.conf import settings
 
+from ml_pipeline.errors import CandidateModelError
+
 from .domains import normalize_hostname, registrable_domain
+from .ensemble_classifier import RuntimeEnsembleClassifier
 from .ml_classifier import ModelLoadError, URLCNNClassifier
 
 logger = logging.getLogger(__name__)
@@ -150,6 +153,35 @@ def _model_probability(url: str) -> float | None:
     return classifier.predict_probability(url)
 
 
+@lru_cache(maxsize=1)
+def _load_shadow_classifier() -> RuntimeEnsembleClassifier | None:
+    if not settings.PHISHGUARD_ML_SHADOW_ENABLED:
+        return None
+    try:
+        return RuntimeEnsembleClassifier(
+            settings.PHISHGUARD_V4_ENSEMBLE_PATH,
+            settings.PHISHGUARD_V4_LEXICAL_PATH,
+            settings.PHISHGUARD_V4_STRUCTURAL_PATH,
+        )
+    except (CandidateModelError, OSError):
+        logger.exception("PhishGuard v4 shadow model could not be loaded")
+        return None
+
+
+def _shadow_prediction(url: str) -> tuple[str, float] | None:
+    classifier = _load_shadow_classifier()
+    if classifier is None:
+        return None
+    probability = classifier.predict_probability(url)
+    if probability <= classifier.lower_threshold:
+        status = "SAFE"
+    elif probability >= classifier.upper_threshold:
+        status = "PHISHING"
+    else:
+        status = "UNKNOWN"
+    return status, probability * 100.0
+
+
 def predict_url_security(url: str) -> dict[str, str | float | list[str]]:
     """Classify a validated URL and explain which detection engine was used."""
     rule_risk, reasons = _rule_assessment(url)
@@ -199,4 +231,19 @@ def predict_url_security(url: str) -> dict[str, str | float | list[str]]:
     if model_probability is not None:
         result["model_risk_score"] = round(model_probability * 100.0, 2)
         result["rule_risk_score"] = round(rule_risk, 2)
+    shadow = _shadow_prediction(url)
+    if shadow is not None:
+        shadow_status, shadow_risk = shadow
+        result["shadow_engine"] = "v4-ensemble"
+        result["shadow_status"] = shadow_status
+        result["shadow_risk_score"] = round(shadow_risk, 2)
+        logger.info(
+            "shadow_prediction",
+            extra={
+                "active_status": status,
+                "shadow_status": shadow_status,
+                "shadow_risk_score": round(shadow_risk, 2),
+                "shadow_agreement": status == shadow_status,
+            },
+        )
     return result

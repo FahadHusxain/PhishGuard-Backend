@@ -192,6 +192,14 @@ The reproducible replacement experiment, dataset manifest, grouped evaluation,
 and non-promotion decision are documented in `ml_pipeline/README.md` and
 `ml_models/LEXICAL_MODEL_CARD.md`.
 
+The development-selected v4 ensemble can be exercised safely with
+`PHISHGUARD_ML_SHADOW_ENABLED=true`. Shadow mode loads the exact checksum-bound
+lexical, structural, and ensemble artifacts through a NumPy-only runtime and
+returns `shadow_engine`, `shadow_status`, and `shadow_risk_score` for review.
+It never changes the active `status`, `confidence`, or `risk_score`. Structured
+shadow logs contain verdicts and agreement only—not the submitted URL. Keep the
+flag disabled for ordinary use until a qualifying future holdout has passed.
+
 Rules evaluate independent structural signals such as IP-address hosts,
 credential-lure tokens, nested redirect URLs, unusual subdomain depth, encoded
 content, internationalized hostnames, and nonstandard ports. Keywords are

@@ -78,6 +78,11 @@ node --test browser-extension/tests/extension.test.js
 python scripts/check_extension.py
 ```
 
+The ML runtime suite additionally proves that the NumPy-only v4 lexical and
+ensemble scores match the training implementation to 12 decimal places, that
+artifact changes fail closed, and that shadow output cannot change an active
+verdict.
+
 Then load `browser-extension/` unpacked in Chrome or Edge. Confirm that the
 popup pre-fills an ordinary active tab, accepts a pasted evaluator-supplied
 HTTP(S) link, distinguishes SAFE/PHISHING/UNKNOWN, handles an offline backend,

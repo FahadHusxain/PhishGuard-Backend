@@ -1,5 +1,6 @@
 import bz2
 import json
+import shutil
 import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
@@ -12,6 +13,10 @@ from django.conf import settings
 from django.test import SimpleTestCase
 from sklearn.ensemble import HistGradientBoostingClassifier
 
+from api.ensemble_classifier import (
+    PortableLexicalCandidate,
+    RuntimeEnsembleClassifier,
+)
 from ml_pipeline import acquire_open_corpus, audit_current, audit_open
 from ml_pipeline.audit_current import _phishtank_samples
 from ml_pipeline.candidate import (
@@ -82,6 +87,66 @@ from ml_pipeline.train_open import (
     _upper_threshold,
 )
 from ml_pipeline.train_structural import _serialized_trees
+
+
+class RuntimeEnsembleTests(SimpleTestCase):
+    def test_portable_lexical_scorer_matches_training_implementation(self):
+        model_path = settings.BASE_DIR / "ml_models" / "url_lexical_candidate_v2.npz"
+        portable = PortableLexicalCandidate(model_path)
+        training = V2LexicalCandidate(model_path)
+        urls = [
+            "https://github.com/openai",
+            "http://192.168.1.1/login",
+            "https://www.linkedin.com/feed/",
+            "https://www13.yts.lu/",
+            "https://secure-login.verify-account.example/password",
+        ]
+        for url in urls:
+            with self.subTest(url=url):
+                self.assertAlmostEqual(
+                    portable.decision_function(url),
+                    float(training.decision_function([url])[0]),
+                    places=12,
+                )
+
+    def test_runtime_bundle_matches_evaluation_ensemble(self):
+        ensemble_path = (
+            settings.BASE_DIR / "ml_models" / "url_ensemble_candidate_v4.npz"
+        )
+        lexical_path = settings.BASE_DIR / "ml_models" / "url_lexical_candidate_v2.npz"
+        structural_path = (
+            settings.BASE_DIR / "ml_models" / "url_structural_candidate_v3.npz"
+        )
+        runtime = RuntimeEnsembleClassifier(
+            ensemble_path, lexical_path, structural_path
+        )
+        evaluation = EnsembleCandidate(ensemble_path, lexical_path, structural_path)
+        for url in (
+            "https://github.com/openai",
+            "http://192.168.1.1/login/verify",
+            "https://www13.yts.lu/",
+        ):
+            with self.subTest(url=url):
+                self.assertAlmostEqual(
+                    runtime.predict_probability(url),
+                    evaluation.predict_probability(url),
+                    places=12,
+                )
+
+    def test_runtime_bundle_rejects_changed_artifact(self):
+        with TemporaryDirectory() as temporary_directory:
+            changed = Path(temporary_directory) / "changed.npz"
+            shutil.copyfile(
+                settings.BASE_DIR / "ml_models" / "url_ensemble_candidate_v4.npz",
+                changed,
+            )
+            changed.write_bytes(changed.read_bytes() + b"changed")
+            with self.assertRaisesRegex(CandidateModelError, "checksum"):
+                RuntimeEnsembleClassifier(
+                    changed,
+                    settings.BASE_DIR / "ml_models" / "url_lexical_candidate_v2.npz",
+                    settings.BASE_DIR / "ml_models" / "url_structural_candidate_v3.npz",
+                )
 
 
 def _future_manifest(directory: Path, candidate_sha256: str) -> Path:

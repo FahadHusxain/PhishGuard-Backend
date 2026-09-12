@@ -21,6 +21,10 @@ class JSONFormatter(logging.Formatter):
         "http_route",
         "http_status",
         "duration_ms",
+        "active_status",
+        "shadow_status",
+        "shadow_risk_score",
+        "shadow_agreement",
     )
 
     def format(self, record):

@@ -5,9 +5,7 @@ from pathlib import Path
 import numpy as np
 from sklearn.feature_extraction.text import HashingVectorizer
 
-
-class CandidateModelError(RuntimeError):
-    """Raised when a candidate artifact is incomplete or malformed."""
+from ml_pipeline.errors import CandidateModelError
 
 
 class LexicalCandidate:

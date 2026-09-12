@@ -141,3 +141,17 @@ exact file sizes and SHA-256 hashes, safe local filenames, sufficient rows and
 source diversity, and removal of all training-domain overlap. It writes only
 aggregate evidence. The example manifest is intentionally invalid and must
 never be treated as a completed data review.
+
+## V4 runtime shadow mode
+
+`api/ensemble_classifier.py` provides a production-compatible scorer for the
+frozen v4 artifacts without installing the training-only scikit-learn package.
+Its character hashing and complete ensemble probability are parity-tested
+against the evaluation implementation, and all three artifact checksums are
+verified before use.
+
+Set `PHISHGUARD_ML_SHADOW_ENABLED=true` only in a controlled evaluation
+environment. The candidate result is exposed under `shadow_*` response fields
+and emitted as privacy-reduced structured metadata, but the active rules/CNN
+verdict is unchanged. Shadow support is readiness infrastructure, not model
+promotion and not permission to bypass the prospective holdout gate.

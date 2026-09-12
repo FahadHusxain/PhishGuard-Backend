@@ -104,6 +104,16 @@ class PredictionResponseSerializer(serializers.Serializer):
         max_value=100,
         required=False,
     )
+    shadow_engine = serializers.ChoiceField(
+        choices=["v4-ensemble"],
+        required=False,
+    )
+    shadow_status = serializers.CharField(required=False)
+    shadow_risk_score = serializers.FloatField(
+        min_value=0,
+        max_value=100,
+        required=False,
+    )
     signals = serializers.ListField(
         child=serializers.CharField(),
         required=False,
