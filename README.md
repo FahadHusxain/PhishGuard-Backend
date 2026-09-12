@@ -10,6 +10,7 @@ application, and Chromium browser extension for URL analysis.
 - [Testing and examiner demonstration guide](docs/testing.md)
 - [Deployment and recovery runbook](docs/operations.md)
 - [Local Compose rehearsal evidence](docs/compose-rehearsal.md)
+- [Release-readiness audit](docs/release-audit.md)
 - [Release checklist](docs/release-checklist.md)
 - [ML experimentation and evaluation](ml_pipeline/README.md)
 - [ML version 2 upgrade plan](docs/ml-upgrade-plan.md)
@@ -218,6 +219,7 @@ python -m pip check
 python manage.py check
 python manage.py makemigrations --check --dry-run
 python manage.py test
+python scripts/check_repository.py
 ruff check .
 ruff format --check .
 coverage run manage.py test

@@ -20,6 +20,8 @@ approved for merge.
   release documentation.
 - Reproducible local Compose rehearsal evidence covering service health,
   isolation, hardening, restart recovery, and bounded concurrency.
+- A CI-enforced repository hygiene check for committed secrets, environment
+  files, private keys, databases, runtime data, and generated artifacts.
 - A provenance-aware version 2 ML corpus contract that blocks training on
   unlicensed, source-confounded, representation-mismatched, or undated data.
 - A reproducible aggregate readiness audit for locally held ML sources, with
