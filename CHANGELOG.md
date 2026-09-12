@@ -18,6 +18,8 @@ approved for merge.
 - Non-root production container and health-gated PostgreSQL/Redis Compose stack.
 - Backup/restore tooling plus architecture, threat, testing, operations, and
   release documentation.
+- Reproducible local Compose rehearsal evidence covering service health,
+  isolation, hardening, restart recovery, and bounded concurrency.
 - A provenance-aware version 2 ML corpus contract that blocks training on
   unlicensed, source-confounded, representation-mismatched, or undated data.
 - A reproducible aggregate readiness audit for locally held ML sources, with
