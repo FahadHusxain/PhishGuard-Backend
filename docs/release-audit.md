@@ -28,6 +28,10 @@ rechecked after final UI review.
   deterministically generated, and checked in CI.
 - Exact official-platform roots use a separate reviewed registry with a
   fail-closed Django system check; popularity alone never produces `SAFE`.
+- On 2026-09-12, Asad Abbas visually reviewed the browser-extension results
+  against the rebuilt Compose service. GitHub and Facebook official roots were
+  low risk, the unreviewed YTS URL was inconclusive, and the loopback URL was
+  high risk with its IP-address and nonstandard-port signals explained.
 
 ## Blocking owner decisions
 
@@ -45,8 +49,9 @@ grant are documented separately in `THIRD_PARTY_NOTICES.md`.
    attributed, checksum-pinned source and deterministic transformation. The
    removed files remain in Git history and must not be restored without proof
    of origin and redistribution rights.
-3. **Final UI review:** automated web and extension contracts pass, but desktop,
-   popup, narrow-screen, keyboard, and contrast review still needs human sign-off.
+3. **Accessibility sign-off:** functional desktop and extension review is
+   complete. A final keyboard-only and contrast review remains required before
+   claiming accessibility conformance.
 4. **ML promotion:** v4 remains shadow-only until a qualifying prospective
    holdout and controlled shadow review pass the frozen policy.
 

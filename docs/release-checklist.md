@@ -24,7 +24,9 @@ for production. Complete it against one immutable candidate commit.
 - [ ] Secret scanning and repository inspection find no real credentials,
       environment files, databases, private scan data, or generated caches.
 - [ ] Security-sensitive changes have regression tests and threat-model updates.
-- [ ] An authorized reviewer has tested arbitrary valid and malformed URLs.
+- [x] An authorized reviewer tested official-root, unreviewed-site, and
+      high-risk structural URL cases against the rebuilt local candidate.
+- [ ] An authorized reviewer has tested malformed and unsupported URL inputs.
 
 ## Deployment preparation
 

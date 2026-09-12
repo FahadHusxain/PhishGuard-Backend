@@ -36,6 +36,8 @@ approved for merge.
 - Added a conservative low-risk verdict for exact HTTPS roots in a small,
   reviewed official-platform registry while keeping all paths and popularity
   matches inconclusive unless stronger evidence exists.
+- Recorded functional browser-extension review against the rebuilt Compose
+  service across low-risk, inconclusive, and high-risk outcomes.
 - A provenance-aware version 2 ML corpus contract that blocks training on
   unlicensed, source-confounded, representation-mismatched, or undated data.
 - A reproducible aggregate readiness audit for locally held ML sources, with
