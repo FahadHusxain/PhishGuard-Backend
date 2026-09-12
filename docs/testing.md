@@ -92,7 +92,8 @@ verdict.
 Then load `browser-extension/` unpacked in Chrome or Edge. Confirm that the
 popup pre-fills an ordinary active tab, accepts a pasted evaluator-supplied
 HTTP(S) link, distinguishes SAFE/PHISHING/UNKNOWN, handles an offline backend,
-and links to its backend settings. Verify that a remote HTTP endpoint is
+submits with Enter while preserving Shift+Enter for a line break, and links to
+its backend settings. Verify that a remote HTTP endpoint is
 rejected and a remote HTTPS endpoint triggers a host-permission prompt.
 
 If a known bundled domain remains inconclusive in an older local database,

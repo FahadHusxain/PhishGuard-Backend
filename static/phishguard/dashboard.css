@@ -233,3 +233,46 @@ footer { border-color: #173438; }
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Precision threat-console finish */
+body { scrollbar-color: #31565a #041416; }
+body::after {
+    position: fixed; inset: 0; z-index: 10; opacity: .15; pointer-events: none;
+    background: repeating-linear-gradient(to bottom, transparent 0, transparent 4px, rgb(0 0 0 / 10%) 5px);
+    content: "";
+}
+.side-rail { box-shadow: 1.5rem 0 5rem rgb(0 0 0 / 32%); }
+.brand-copy strong { letter-spacing: .19em; }
+.side-rail nav a { border-top: 1px solid transparent; border-bottom: 1px solid transparent; }
+.side-rail nav a:hover, .side-rail nav a.active { border-top-color: #173438; border-bottom-color: #173438; }
+.workspace { padding-bottom: 2.5rem; }
+.console-header { min-height: 6rem; }
+.console-header h1 { font-size: clamp(1.85rem, 3vw, 2.55rem); }
+.scan-console, .module, .metric-card { position: relative; }
+.scan-console::after { right: -5rem; bottom: -8rem; }
+.scan-heading::after {
+    margin-left: auto; align-self: flex-start; padding: .35rem .5rem; border: 1px solid #294d51;
+    background: #071a1d; color: #72999b; content: "PASSIVE / LOCAL";
+    font: 700 .52rem/1 Consolas, monospace; letter-spacing: .1em;
+}
+.scan-input-row input { font-family: "Cascadia Mono", Consolas, monospace; font-size: .9rem; }
+.analysis-note { color: #b3c9c7; }
+.result { min-height: 6.5rem; padding: 1.2rem 1.35rem; }
+.result-safe { box-shadow: 0 .8rem 2rem rgb(0 0 0 / 24%), 0 0 1.8rem rgb(36 224 163 / 7%); }
+.result-danger, .result-error { box-shadow: 0 .8rem 2rem rgb(0 0 0 / 24%), 0 0 1.8rem rgb(255 91 82 / 8%); }
+.metrics { box-shadow: 0 1rem 3rem rgb(0 0 0 / 16%); }
+.metric-card::after, .module::after {
+    position: absolute; top: .55rem; right: .55rem; width: .65rem; height: .65rem;
+    border-top: 1px solid #31565a; border-right: 1px solid #31565a; content: "";
+}
+.metric-card > span { color: #94b0b1; }
+.metric-card small, .activity-meta, .empty-state, .field-help { color: #91abad; }
+.module-heading { padding-bottom: 1rem; border-bottom: 1px solid #17383b; }
+.module-heading .kicker { color: #84a5a7; }
+.table-wrap { max-height: 24rem; overflow: auto; scrollbar-color: #31565a #061416; }
+tbody tr:nth-child(even) { background: rgb(100 210 198 / 2%); }
+
+@media (max-width: 680px) {
+    .scan-heading::after { display: none; }
+    .scan-console { border-inline: 0; }
+}

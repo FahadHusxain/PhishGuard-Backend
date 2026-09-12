@@ -20,6 +20,10 @@ export function normalizeTargetUrl(value) {
     return parsed.href;
 }
 
+export function isAnalyzeShortcut(event) {
+    return event.key === "Enter" && !event.shiftKey && !event.isComposing;
+}
+
 function errorMessage(payload, status) {
     return payload?.error?.message || `The PhishGuard service returned HTTP ${status}.`;
 }

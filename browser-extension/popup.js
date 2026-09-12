@@ -1,4 +1,4 @@
-import {analyzeUrl, normalizeTargetUrl} from "./lib/api.js";
+import {analyzeUrl, isAnalyzeShortcut, normalizeTargetUrl} from "./lib/api.js";
 import {loadBackendUrl} from "./lib/config.js";
 
 const byId = (id) => document.getElementById(id);
@@ -124,5 +124,14 @@ async function submitScan(event) {
 }
 
 byId("scan-form").addEventListener("submit", submitScan);
+byId("target-url").addEventListener("keydown", (event) => {
+    if (!isAnalyzeShortcut(event)) {
+        return;
+    }
+    event.preventDefault();
+    if (!byId("scan-button").disabled) {
+        byId("scan-form").requestSubmit();
+    }
+});
 byId("settings-button").addEventListener("click", () => chrome.runtime.openOptionsPage());
 initialize();

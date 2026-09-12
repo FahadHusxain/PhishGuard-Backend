@@ -38,6 +38,8 @@ approved for merge.
   matches inconclusive unless stronger evidence exists.
 - Recorded functional browser-extension review against the rebuilt Compose
   service across low-risk, inconclusive, and high-risk outcomes.
+- Refined the dashboard and extension into a consistent high-contrast threat
+  console and made Enter submit extension scans while Shift+Enter adds a line.
 - A provenance-aware version 2 ML corpus contract that blocks training on
   unlicensed, source-confounded, representation-mismatched, or undated data.
 - A reproducible aggregate readiness audit for locally held ML sources, with

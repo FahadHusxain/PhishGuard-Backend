@@ -26,7 +26,7 @@
             <form id="scan-form" novalidate>
                 <label for="target-url">Page or link</label>
                 <textarea id="target-url" name="url" rows="3" maxlength="500" spellcheck="false" required aria-describedby="url-help"></textarea>
-                <p id="url-help" class="help">The page is not opened or downloaded by the extension.</p>
+                <p id="url-help" class="help"><span>The destination is never opened.</span><kbd>ENTER</kbd> analyze <span aria-hidden="true">/</span> <kbd>SHIFT+ENTER</kbd> new line</p>
                 <button id="scan-button" class="primary-button" type="submit"><span>Analyze URL</span><i aria-hidden="true">→</i></button>
             </form>
             <div id="scan-visual" class="scan-visual" aria-hidden="true">
@@ -49,7 +49,7 @@
         </section>
 
         <p id="connection-status" class="connection-status" role="status"></p>
-        <footer><span>Three outcomes: safe, phishing, or inconclusive.</span></footer>
+        <footer><span>Passive analysis</span><b>SAFE / PHISHING / INCONCLUSIVE</b></footer>
     </main>
 </body>
 </html>

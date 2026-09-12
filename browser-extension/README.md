@@ -16,6 +16,9 @@ same versioned API used by the PhishGuard web application.
 5. Select **Analyze URL**. You may replace the current-tab address with any
    complete HTTP(S) URL the evaluator wants to test.
 
+Inside the URL field, **Enter** starts analysis and **Shift+Enter** inserts a
+line break. The visible button remains available for pointer and touch input.
+
 Browser-internal pages such as `chrome://settings`, extension-store pages, and
 local files cannot be read automatically. Paste an HTTP(S) URL into the popup
 when the active page is unsupported.

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {analyzeUrl, normalizeTargetUrl} from "../lib/api.js";
+import {analyzeUrl, isAnalyzeShortcut, normalizeTargetUrl} from "../lib/api.js";
 import {
     normalizeBackendUrl,
     permissionPattern,
@@ -24,6 +24,13 @@ test("target URL validation allows only credential-free HTTP(S) URLs", () => {
     assert.equal(normalizeTargetUrl("https://example.com/login"), "https://example.com/login");
     assert.throws(() => normalizeTargetUrl("chrome://settings"), /Only HTTP and HTTPS/);
     assert.throws(() => normalizeTargetUrl("https://user:pass@example.com"), /credentials/);
+});
+
+test("Enter analyzes while Shift+Enter remains available for multiline input", () => {
+    assert.equal(isAnalyzeShortcut({key: "Enter", shiftKey: false, isComposing: false}), true);
+    assert.equal(isAnalyzeShortcut({key: "Enter", shiftKey: true, isComposing: false}), false);
+    assert.equal(isAnalyzeShortcut({key: "Enter", shiftKey: false, isComposing: true}), false);
+    assert.equal(isAnalyzeShortcut({key: "Space", shiftKey: false, isComposing: false}), false);
 });
 
 test("analysis sends the versioned request without credentials or caching", async () => {

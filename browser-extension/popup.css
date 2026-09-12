@@ -118,3 +118,55 @@ footer { border-color: #19383b; background: rgb(4 19 21 / 55%); }
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Precision threat-console finish */
+body { width: 400px; scrollbar-color: #31565a #041416; }
+.popup-shell::before {
+    position: fixed; inset: 0; z-index: 0; opacity: .22; pointer-events: none;
+    background: repeating-linear-gradient(to bottom, transparent 0, transparent 3px, rgb(0 0 0 / 12%) 4px);
+    content: "";
+}
+.brand-row { min-height: 5.4rem; padding-inline: 1.3rem; }
+.brand-row img { width: 44px; height: 44px; }
+.brand-row strong { font-size: .88rem; letter-spacing: .19em; }
+.brand-row span { color: #a9c4c3; letter-spacing: .08em; }
+.icon-button { width: 2.65rem; height: 2.65rem; transition: border-color .2s, color .2s, box-shadow .2s; }
+.icon-button:hover { box-shadow: 0 0 1rem rgb(185 255 79 / 14%); }
+.system-strip { padding-inline: 1.3rem; color: #709295; }
+.scanner { padding: 1.65rem 1.3rem 1.2rem; }
+.scanner::before, .result::before {
+    position: absolute; top: .55rem; right: .55rem; width: .65rem; height: .65rem;
+    border-top: 1px solid #4b7779; border-right: 1px solid #4b7779; content: "";
+}
+h1 { font-size: 1.62rem; line-height: 1.1; }
+form { margin-top: 1.45rem; }
+label { color: #dff4f1; font-size: .78rem; letter-spacing: .02em; }
+textarea {
+    min-height: 6rem; padding: .9rem; border-color: #3a6266;
+    font: 600 .78rem/1.55 "Cascadia Mono", Consolas, monospace;
+}
+.help { display: flex; flex-wrap: wrap; align-items: center; gap: .32rem; color: #91afb0; line-height: 1.5; }
+.help span:first-child { margin-right: auto; }
+kbd {
+    padding: .16rem .3rem; border: 1px solid #31575b; background: #0b292c; color: #b9d3d1;
+    box-shadow: inset 0 -1px #17383b; font: 700 .48rem/1 Consolas, monospace;
+}
+.primary-button { min-height: 3.35rem; box-shadow: 0 0 1.5rem rgb(185 255 79 / 8%); }
+.primary-button:active { transform: translateY(1px); }
+.scan-visual { margin-top: 1rem; padding-top: .8rem; border-top: 1px solid #153538; }
+.result { margin-inline: 1.3rem; padding: 1.15rem; border-top-width: 5px; }
+.result[data-verdict="SAFE"] { box-shadow: 0 .8rem 2.2rem rgb(0 0 0 / 28%), 0 0 1.6rem rgb(40 227 166 / 7%); }
+.result[data-verdict="PHISHING"] { box-shadow: 0 .8rem 2.2rem rgb(0 0 0 / 28%), 0 0 1.6rem rgb(255 91 82 / 8%); }
+.verdict-mark { width: 2.65rem; height: 2.65rem; }
+.result h2 { font-size: 1.12rem; line-height: 1.2; }
+.confidence { padding: .3rem .4rem; border: 1px solid #315156; background: #071b1e; }
+.result-message { font-size: .8rem; line-height: 1.55; }
+.domain-context { padding: .75rem .8rem; font-size: .72rem; line-height: 1.45; }
+.result-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; padding: 1px; background: #234347; border: 0; }
+.result-details div { min-width: 0; padding: .65rem .45rem; background: #092124; }
+.result-details dd { overflow-wrap: anywhere; color: #eafff9; }
+.connection-status { padding-inline: 1.3rem; color: #91afb0; }
+footer { display: flex; justify-content: space-between; gap: .6rem; padding-inline: 1.3rem; color: #76999b; }
+footer b { color: #abc6c4; font-weight: 600; }
+
+@media (max-width: 400px) { body { width: 100vw; } }
