@@ -27,10 +27,19 @@ class Command(BaseCommand):
             default=5000,
             help="Number of validated records written per database batch",
         )
+        parser.add_argument(
+            "--update-existing",
+            action="store_true",
+            help=(
+                "Refresh ranks for existing domains; this can reactivate "
+                "rank-zero entries"
+            ),
+        )
 
     def handle(self, *args, **options):
         file_path = options["file"]
         batch_size = options["batch_size"]
+        update_existing = options["update_existing"]
         if batch_size < 1:
             raise CommandError("--batch-size must be at least 1")
         if not file_path.is_file():
@@ -59,11 +68,11 @@ class Command(BaseCommand):
                     batch.append(WhitelistDomain(domain=domain, rank=rank))
                     queued += 1
                     if len(batch) >= batch_size:
-                        self._write_batch(batch)
+                        self._write_batch(batch, update_existing=update_existing)
                         batch.clear()
 
             if batch:
-                self._write_batch(batch)
+                self._write_batch(batch, update_existing=update_existing)
         except (OSError, UnicodeError, csv.Error) as exc:
             raise CommandError(f"Unable to import {file_path}: {exc}") from exc
 
@@ -75,5 +84,13 @@ class Command(BaseCommand):
         invalidate_dashboard_aggregates()
 
     @staticmethod
-    def _write_batch(batch):
+    def _write_batch(batch, *, update_existing):
+        if update_existing:
+            WhitelistDomain.objects.bulk_create(
+                batch,
+                update_conflicts=True,
+                update_fields=("rank",),
+                unique_fields=("domain",),
+            )
+            return
         WhitelistDomain.objects.bulk_create(batch, ignore_conflicts=True)

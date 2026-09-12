@@ -83,6 +83,16 @@ HTTP(S) link, distinguishes SAFE/PHISHING/UNKNOWN, handles an offline backend,
 and links to its backend settings. Verify that a remote HTTP endpoint is
 rejected and a remote HTTPS endpoint triggers a host-permission prompt.
 
+If a known bundled domain remains inconclusive in an older local database,
+inspect its current rank before opting into a rank refresh:
+
+```bash
+python manage.py load_domains --update-existing
+```
+
+The default import preserves existing ranks. The explicit refresh may
+reactivate rank-zero entries, so do not use it blindly against production data.
+
 ## Bounded concurrency check
 
 With the service running:

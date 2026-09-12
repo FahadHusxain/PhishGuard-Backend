@@ -1034,6 +1034,26 @@ class LoadDomainsCommandTests(APITestCase):
         )
         self.assertIn("3 skipped", stdout.getvalue())
 
+    def test_loader_preserves_existing_rank_by_default(self):
+        WhitelistDomain.objects.create(domain="github.com", rank=0)
+        with TemporaryDirectory() as temporary_directory:
+            csv_path = Path(temporary_directory) / "domains.csv"
+            csv_path.write_text("32,github.com\n", encoding="utf-8")
+
+            call_command("load_domains", file=csv_path)
+
+        self.assertEqual(WhitelistDomain.objects.get(domain="github.com").rank, 0)
+
+    def test_loader_can_explicitly_refresh_existing_ranks(self):
+        WhitelistDomain.objects.create(domain="github.com", rank=0)
+        with TemporaryDirectory() as temporary_directory:
+            csv_path = Path(temporary_directory) / "domains.csv"
+            csv_path.write_text("32,github.com\n", encoding="utf-8")
+
+            call_command("load_domains", file=csv_path, update_existing=True)
+
+        self.assertEqual(WhitelistDomain.objects.get(domain="github.com").rank, 32)
+
 
 class ScanLogDataTests(APITestCase):
     def test_database_rejects_an_invalid_scan_status(self):

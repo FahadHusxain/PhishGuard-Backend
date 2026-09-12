@@ -47,6 +47,12 @@ On Windows PowerShell, activate the environment with:
 
 The API is available at `http://127.0.0.1:8000/api/`.
 
+Load the bundled trust-domain ranks into a fresh database with
+`python manage.py load_domains`. If an older development database already has
+stale rank-zero rows, review the source and use
+`python manage.py load_domains --update-existing` explicitly; that mode can
+reactivate entries an administrator previously disabled.
+
 The dashboard has no runtime CDN dependency. Its CSS and JavaScript are served
 through Django static files, and it enforces a strict same-origin Content
 Security Policy. Self-hosted API documentation receives only the narrow inline
