@@ -2,6 +2,10 @@ from django.contrib import admin
 
 from .models import ScanLog, WhitelistAuditEvent, WhitelistDomain
 
+admin.site.site_header = "PhishGuard secure command"
+admin.site.site_title = "PhishGuard Administration"
+admin.site.index_title = "Defense data controls"
+
 
 @admin.register(WhitelistDomain)
 class WhitelistDomainAdmin(admin.ModelAdmin):

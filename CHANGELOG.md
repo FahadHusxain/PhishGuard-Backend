@@ -50,6 +50,8 @@ approved for merge.
 - Dashboard and extension presentation now use an original cinematic security
   operations visual system with responsive HUD details, animated analysis
   states, live counters, and reduced-motion fallbacks.
+- API documentation and authenticated administration now share the same
+  self-hosted, high-contrast PhishGuard command-console identity.
 - Rules-only results without sufficient evidence now return `UNKNOWN` instead
   of making an unsupported claim that an arbitrary URL is safe.
 - Trusted-domain imports can explicitly refresh stale existing ranks while the

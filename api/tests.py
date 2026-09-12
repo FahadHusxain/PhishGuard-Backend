@@ -206,6 +206,8 @@ class OperationalEndpointTests(APITestCase):
         response = self.client.get(reverse("api_docs"))
 
         self.assertContains(response, "/static/drf_spectacular_sidecar/")
+        self.assertContains(response, "/static/phishguard/api-docs.css")
+        self.assertContains(response, "API INTELLIGENCE")
         self.assertNotContains(response, "cdn.jsdelivr.net")
         self.assertIn(
             "script-src 'self' 'unsafe-inline'", response["Content-Security-Policy"]
@@ -215,6 +217,15 @@ class OperationalEndpointTests(APITestCase):
             "'unsafe-inline'",
             dashboard_response["Content-Security-Policy"],
         )
+
+    @override_settings(DEBUG=True, STORAGES=TEST_STATIC_STORAGES)
+    def test_admin_login_uses_phishguard_command_theme(self):
+        response = self.client.get(reverse("admin:login"))
+
+        self.assertContains(response, "/static/phishguard/admin.css")
+        self.assertContains(response, "PHISHGUARD")
+        self.assertContains(response, "SECURE COMMAND")
+        self.assertContains(response, "Threat console")
 
     def test_unsafe_request_id_is_replaced(self):
         response = self.client.get(
