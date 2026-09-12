@@ -19,3 +19,21 @@ repos:
         language: system
         pass_filenames: false
         types: [python]
+
+      - id: repository-hygiene
+        name: Repository hygiene
+        entry: python scripts/check_repository.py
+        language: system
+        pass_filenames: false
+
+      - id: reference-data
+        name: Reference-data integrity
+        entry: python scripts/check_reference_data.py
+        language: system
+        pass_filenames: false
+
+      - id: browser-extension
+        name: Browser-extension contract
+        entry: python scripts/check_extension.py
+        language: system
+        pass_filenames: false

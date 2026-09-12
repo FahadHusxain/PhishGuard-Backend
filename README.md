@@ -94,8 +94,8 @@ Listed hostnames are stored in canonical lowercase ASCII form. Model and API
 writes normalize Unicode IDNs and trailing dots, while a database constraint
 prevents case-insensitive duplicates. This keeps domain-reference matching
 consistent regardless of how a hostname is written in a submitted URL.
-Matching uses an offline Public Suffix List, including private suffixes, so a
-one tenant cannot accidentally list sibling tenants or an entire
+Matching uses an offline Public Suffix List, including private suffixes, so one
+tenant cannot accidentally list sibling tenants or an entire
 public suffix.
 
 ## Configuration

@@ -10,6 +10,7 @@ from .throttles import (
     AnalysisRateThrottle,
     ReadRateThrottle,
 )
+from .verified_platforms import verified_platform_domains
 
 THROTTLE_CLASSES = (
     AnalysisRateThrottle,
@@ -62,5 +63,29 @@ def shadow_model_configuration_check(app_configs, **_kwargs):
             "The enabled v4 shadow model failed its integrity check.",
             hint="Restore the frozen v4 artifacts or disable shadow mode.",
             id="api.E002",
+        )
+    ]
+
+
+@register(Tags.security)
+def verified_platform_registry_check(app_configs, **_kwargs):
+    verified_platform_domains.cache_clear()
+    try:
+        domains = verified_platform_domains()
+    except (OSError, TypeError, ValueError) as exc:
+        return [
+            Error(
+                "The verified-platform registry is invalid.",
+                hint=str(exc),
+                id="api.E003",
+            )
+        ]
+    if domains:
+        return []
+    return [
+        Error(
+            "The verified-platform registry is empty.",
+            hint="Add reviewed platform records or remove the low-risk policy.",
+            id="api.E003",
         )
     ]

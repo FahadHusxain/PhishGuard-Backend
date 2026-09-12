@@ -12,11 +12,24 @@ from .domains import normalize_hostname
 
 @lru_cache(maxsize=1)
 def verified_platform_domains() -> frozenset[str]:
-    registry_path = Path(settings.BASE_DIR) / "data" / "verified_platforms.json"
+    registry_path = Path(settings.PHISHGUARD_VERIFIED_PLATFORMS_PATH)
     document = json.loads(registry_path.read_text(encoding="utf-8"))
     if document.get("format_version") != 1:
         raise ValueError("Unsupported verified-platform registry format")
-    domains = [normalize_hostname(entry["domain"]) for entry in document["platforms"]]
+    domains = []
+    for entry in document["platforms"]:
+        domain = normalize_hostname(entry["domain"])
+        official_url = urlsplit(entry["official_url"])
+        official_hostname = normalize_hostname(official_url.hostname or "")
+        if (
+            official_url.scheme != "https"
+            or official_url.path not in {"", "/"}
+            or official_url.query
+            or official_url.fragment
+            or official_hostname not in {domain, f"www.{domain}"}
+        ):
+            raise ValueError(f"Invalid official URL for verified platform {domain}")
+        domains.append(domain)
     if len(domains) != len(set(domains)):
         raise ValueError("Verified-platform registry contains duplicate domains")
     return frozenset(domains)

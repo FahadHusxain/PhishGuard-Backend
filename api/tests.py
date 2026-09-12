@@ -38,6 +38,7 @@ from .checks import (
     shadow_model_configuration_check,
     shared_throttle_cache_check,
     throttle_rate_configuration_check,
+    verified_platform_registry_check,
 )
 from .dashboard import DASHBOARD_CACHE_KEY, get_dashboard_aggregates
 from .domains import (
@@ -1025,6 +1026,19 @@ class MLClassifierTests(SimpleTestCase):
                 }
             ),
         )
+
+    def test_verified_platform_configuration_check_fails_closed(self):
+        with TemporaryDirectory() as temporary_directory:
+            registry = Path(temporary_directory) / "platforms.json"
+            registry.write_text(
+                '{"format_version": 1, "platforms": '
+                '[{"domain": "github.com", "official_url": "http://github.com/"}]}',
+                encoding="utf-8",
+            )
+            with override_settings(PHISHGUARD_VERIFIED_PLATFORMS_PATH=registry):
+                errors = verified_platform_registry_check(None)
+
+        self.assertEqual(errors[0].id, "api.E003")
 
     def test_rules_only_fallback_is_explicit_and_inconclusive(self):
         result = predict_url_security("https://ordinary-example.test")
