@@ -68,6 +68,21 @@ Inspect `/api/docs/` for the versioned contract. Exercise the dashboard at wide
 and narrow viewport widths, keyboard-only navigation, empty/error/loading
 states, URL analysis, and trusted-domain search.
 
+## Browser extension checks
+
+Run the automated Manifest V3 checks from the repository root:
+
+```bash
+node --test browser-extension/tests/extension.test.js
+python scripts/check_extension.py
+```
+
+Then load `browser-extension/` unpacked in Chrome or Edge. Confirm that the
+popup pre-fills an ordinary active tab, accepts a pasted evaluator-supplied
+HTTP(S) link, distinguishes SAFE/PHISHING/UNKNOWN, handles an offline backend,
+and links to its backend settings. Verify that a remote HTTP endpoint is
+rejected and a remote HTTPS endpoint triggers a host-permission prompt.
+
 ## Bounded concurrency check
 
 With the service running:

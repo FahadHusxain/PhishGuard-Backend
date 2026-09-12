@@ -18,6 +18,7 @@ __pycache__
 htmlcov
 media
 staticfiles
+browser-extension
 top1m.csv
 ml_models/*.pickle
 CONTRIBUTING.md

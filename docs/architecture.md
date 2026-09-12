@@ -69,6 +69,7 @@ depend on database availability and are covered by the readiness probe.
 | `api/ml_logic.py` | Explainable rule scoring and optional hybrid model combination |
 | `api/views.py` | API orchestration, permissions, audit creation and scan persistence |
 | `api/dashboard.py` | Short-lived aggregate cache and query-efficient statistics |
+| `browser-extension/` | Manifest V3 popup client for active-tab and pasted-URL analysis |
 | `api/models.py` | Trusted domains, immutable audit history, and privacy-reduced scan records |
 | `backend/health.py` | Liveness and database/cache readiness probes |
 | `ml_pipeline/` | Reproducible candidate training and external evaluation workflow |
@@ -84,6 +85,11 @@ depend on database availability and are covered by the readiness probe.
 For scan logs, the origin contains only scheme, hostname, and explicit port.
 Paths, queries, fragments, and credentials are removed before persistence.
 Recent target domains are hidden from anonymous dashboard users.
+
+The browser extension is a separate presentation client. It reads the current
+tab only after the user invokes the toolbar action and sends the selected URL
+to the existing versioned prediction endpoint. It has no content script or
+background service worker and does not alter visited pages.
 
 ## Detection decision
 

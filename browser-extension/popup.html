@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PhishGuard Link Scanner</title>
+    <link rel="stylesheet" href="popup.css">
+    <script type="module" src="popup.js"></script>
+</head>
+<body>
+    <main class="popup-shell">
+        <header class="brand-row">
+            <img src="icons/icon-48.png" width="40" height="40" alt="">
+            <div>
+                <strong>PHISHGUARD</strong>
+                <span>Browser link scanner</span>
+            </div>
+            <button id="settings-button" class="icon-button" type="button" aria-label="Open backend settings" title="Backend settings">⚙</button>
+        </header>
+
+        <section class="scanner" aria-labelledby="scanner-title">
+            <p class="eyebrow">Current investigation</p>
+            <h1 id="scanner-title">Check before you trust</h1>
+            <form id="scan-form" novalidate>
+                <label for="target-url">Page or link</label>
+                <textarea id="target-url" name="url" rows="3" maxlength="500" spellcheck="false" required aria-describedby="url-help"></textarea>
+                <p id="url-help" class="help">The page is not opened or downloaded by the extension.</p>
+                <button id="scan-button" class="primary-button" type="submit">Analyze URL</button>
+            </form>
+        </section>
+
+        <section id="result" class="result" role="status" aria-live="polite" hidden>
+            <div class="verdict-row">
+                <span id="verdict-mark" class="verdict-mark" aria-hidden="true">?</span>
+                <div><p id="verdict-label" class="eyebrow">Verdict</p><h2 id="verdict-title">Awaiting analysis</h2></div>
+                <strong id="confidence" class="confidence"></strong>
+            </div>
+            <p id="result-message" class="result-message"></p>
+            <dl id="result-details" class="result-details"></dl>
+            <ul id="signals" class="signals"></ul>
+        </section>
+
+        <p id="connection-status" class="connection-status" role="status"></p>
+        <footer><span>Three outcomes: safe, phishing, or inconclusive.</span></footer>
+    </main>
+</body>
+</html>

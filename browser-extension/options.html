@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PhishGuard settings</title>
+    <link rel="stylesheet" href="options.css">
+    <script type="module" src="options.js"></script>
+</head>
+<body>
+    <main>
+        <p class="eyebrow">PhishGuard extension</p>
+        <h1>Backend settings</h1>
+        <p class="intro">Choose the PhishGuard server that performs URL analysis. Local HTTP is supported for development; every remote server must use HTTPS.</p>
+        <form id="settings-form" novalidate>
+            <label for="backend-url">Backend origin</label>
+            <input id="backend-url" name="backendUrl" type="url" inputmode="url" required spellcheck="false" placeholder="http://127.0.0.1:8000" aria-describedby="backend-help">
+            <p id="backend-help" class="help">Enter only the origin—no API path, query, credentials, or trailing route.</p>
+            <button type="submit">Save and authorize</button>
+        </form>
+        <p id="save-status" role="status" aria-live="polite"></p>
+        <aside><strong>Privacy note</strong><span>The URL you scan is sent only to the backend shown above. PhishGuard does not inject scripts into pages or request browsing-history access.</span></aside>
+    </main>
+</body>
+</html>

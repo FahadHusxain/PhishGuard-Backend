@@ -46,6 +46,9 @@ alter trust decisions, exhaust application resources, or corrupt audit data.
 | Dependency compromise | vulnerable or malicious package/image | pinned Python dependencies, dependency audit, CI container build | Base-image tags should be updated through reviewed maintenance and registry scanning |
 | Model poisoning/drift | biased dataset produces confident wrong verdicts | ML disabled by default, grouped split, external evaluation, model cards, explicit promotion decision | A production-quality representative dataset is still required |
 | Secret exposure | `.env`, database, or key committed to Git/image | ignore rules, example-only values, runtime injection, Docker ignore | Rotate any value that has ever entered version control or logs |
+| Excessive extension privilege | browser client reads or modifies unrelated page data | user-invoked `activeTab`, no content scripts/history/cookies/web-request access, loopback-only required hosts | User still controls any optional HTTPS backend permission |
+| Malicious backend response | remote response injects executable markup into popup | self-only extension CSP, bundled assets, DOM text nodes, response-shape validation | Only configure a reviewed HTTPS backend |
+| Extension endpoint substitution | attacker redirects scans to an untrusted server | validated origin-only setting, remote HTTPS requirement, explicit runtime permission prompt | A user can intentionally authorize a hostile endpoint; configuration remains a trust decision |
 | Data loss | operator removes volume or failed migration corrupts data | backup/restore tooling, migration gate, recovery runbook | Hosted backups and restore drills remain an operator responsibility |
 
 ## Abuse cases that must remain tested

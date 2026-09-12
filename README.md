@@ -1,7 +1,7 @@
 # PhishGuard Backend
 
-PhishGuard is a Django REST API for URL phishing analysis, scan logging, and
-whitelist management.
+PhishGuard is a phishing-detection platform with a Django REST API, web
+application, and Chromium browser extension for URL analysis.
 
 ## Project documentation
 
@@ -13,6 +13,18 @@ whitelist management.
 - [ML experimentation and evaluation](ml_pipeline/README.md)
 - [ML version 2 upgrade plan](docs/ml-upgrade-plan.md)
 - [Unreleased change history](CHANGELOG.md)
+- [Chrome and Edge extension](browser-extension/README.md)
+
+## Browser extension
+
+The installable Manifest V3 client lives in `browser-extension/`. It can
+analyze the active Chrome or Edge tab or any pasted HTTP(S) URL. Its default
+backend is the local development service at `http://127.0.0.1:8000`; remote
+backends must use HTTPS and receive an explicit runtime host-permission grant.
+
+The extension does not inject code into visited pages or request browser
+history. Its production ML status is identical to the web application because
+both clients use `/api/v1/predict/`.
 
 ## Local development
 
