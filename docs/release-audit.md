@@ -18,6 +18,9 @@ and rechecked after final UI review.
 - The local production-shaped Compose stack passed the health, isolation,
   migration, restart, persistence, malformed-input, and concurrency checks
   recorded in [the Compose rehearsal](compose-rehearsal.md).
+- A fresh local PostgreSQL dump restored into an isolated disposable database
+  with complete schema, migration history, and scan-row counts; the temporary
+  unencrypted dump was removed afterward.
 - The exact audit baseline passed both required GitHub Actions jobs.
 
 ## Blocking owner decisions
@@ -41,7 +44,7 @@ and rechecked after final UI review.
 - configure exact host, origin, proxy, TLS, resource, and edge-rate limits;
 - identify the candidate image by immutable digest or commit-derived tag;
 - configure monitoring, alerts, operator ownership, and retention schedules;
-- create an encrypted backup and complete an isolated restore drill;
+- create an encrypted production backup and approve its retention policy;
 - document a database-compatible rollback and previous image;
 - verify the exact candidate through its real HTTPS endpoint.
 

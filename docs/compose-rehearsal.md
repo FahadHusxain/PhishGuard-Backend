@@ -33,11 +33,17 @@ is production-ready.
   median and 198.39 ms p95 latency on this development machine.
 - Restarting the web container restored readiness and retained the existing
   PostgreSQL scan count.
+- The backup script produced a non-empty custom-format PostgreSQL dump. That
+  dump restored successfully into a separate disposable PostgreSQL 17
+  container, recovering 13 public tables, all 25 migration records, and all
+  four scan rows present at backup time. The temporary database and unencrypted
+  local dump were removed after verification.
 
 The latency figures are a local smoke-test observation, not a capacity claim or
-service-level objective. Hosted deployment still requires the controls in the
-[operations runbook](operations.md) and every applicable item in the
-[release checklist](release-checklist.md).
+service-level objective. The restore proves local dump readability, not hosted
+backup encryption, retention, or disaster recovery. Hosted deployment still
+requires the controls in the [operations runbook](operations.md) and every
+applicable item in the [release checklist](release-checklist.md).
 
 ## Reproduction
 
