@@ -42,6 +42,8 @@ approved for merge.
   console and made Enter submit extension scans while Shift+Enter adds a line.
 - Prevented Chromium's narrow initial popup viewport from collapsing the
   extension layout by enforcing its reviewed 400-pixel tool width.
+- Rebuilt web and extension result composition around circular risk
+  instruments, segmented risk vectors, case codes, and terminal-framed input.
 - A provenance-aware version 2 ML corpus contract that blocks training on
   unlicensed, source-confounded, representation-mismatched, or undated data.
 - A reproducible aggregate readiness audit for locally held ML sources, with

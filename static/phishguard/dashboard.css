@@ -272,7 +272,43 @@ body::after {
 .table-wrap { max-height: 24rem; overflow: auto; scrollbar-color: #31565a #061416; }
 tbody tr:nth-child(even) { background: rgb(100 210 198 / 2%); }
 
+.scan-console .result { padding: 0; border-left-width: 1px; border-top: 4px solid var(--warning); }
+.scan-console .result-safe { border-top-color: var(--safe); }
+.scan-console .result-danger, .scan-console .result-error { border-top-color: var(--danger); }
+.result-command {
+    display: flex; justify-content: space-between; padding: .6rem .8rem; border-bottom: 1px solid #24464a;
+    background: #071a1d; color: #73989a; font: 700 .52rem/1 Consolas, monospace; letter-spacing: .12em;
+}
+.result-command b { color: currentColor; }
+.result-layout { display: grid; grid-template-columns: 7.5rem 1fr; gap: 1.35rem; align-items: center; padding: 1.25rem 1.35rem .9rem; }
+.result-instrument { position: relative; display: grid; width: 7rem; height: 7rem; place-items: center; }
+.result-ring {
+    position: absolute; inset: 0; border: 2px solid #23484c; border-radius: 50%;
+    background: conic-gradient(var(--warning) var(--risk-angle, 0deg), transparent 0);
+    mask: radial-gradient(circle, transparent 59%, black 61%);
+}
+.result-safe .result-ring { background: conic-gradient(var(--safe) var(--risk-angle, 0deg), transparent 0); }
+.result-danger .result-ring, .result-error .result-ring { background: conic-gradient(var(--danger) var(--risk-angle, 0deg), transparent 0); }
+.result-instrument::before, .result-instrument::after { position: absolute; background: #23484c; content: ""; }
+.result-instrument::before { width: 4rem; height: 1px; }
+.result-instrument::after { width: 1px; height: 4rem; }
+.result-instrument strong { z-index: 1; margin: 0; color: #f3fffc; font: 800 1.6rem/1 Consolas, monospace; }
+.result-instrument small { position: absolute; bottom: 1.35rem; z-index: 1; color: #83a5a6; font: 700 .48rem/1 Consolas, monospace; letter-spacing: .1em; }
+.result-copy strong { margin-bottom: .45rem; font-size: 1.25rem; }
+.result-copy span { color: #c6dcda; }
+.result-meter { display: grid; grid-template-columns: auto 1fr; gap: .8rem; align-items: center; padding: 0 1.35rem .9rem; }
+.result-meter > span { color: #789b9d; font: 700 .52rem/1 Consolas, monospace; letter-spacing: .09em; }
+.result-meter > div { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; }
+.result-meter i { height: .35rem; background: #183a3e; transform: skewX(-14deg); }
+.result-meter i.active { background: var(--warning); box-shadow: 0 0 .55rem rgb(255 180 59 / 35%); }
+.result-safe .result-meter i.active { background: var(--safe); }
+.result-danger .result-meter i.active, .result-error .result-meter i.active { background: var(--danger); }
+.scan-console .result-context { margin: 0 1.35rem 1.2rem; padding: .85rem 0 0; }
+
 @media (max-width: 680px) {
     .scan-heading::after { display: none; }
     .scan-console { border-inline: 0; }
+    .result-layout { grid-template-columns: 1fr; }
+    .result-instrument { width: 5.5rem; height: 5.5rem; }
+    .result-instrument small { bottom: .9rem; }
 }

@@ -169,3 +169,49 @@ kbd {
 .connection-status { padding-inline: 1.3rem; color: #91afb0; }
 footer { display: flex; justify-content: space-between; gap: .6rem; padding-inline: 1.3rem; color: #76999b; }
 footer b { color: #abc6c4; font-weight: 600; }
+
+.target-terminal { position: relative; border: 1px solid #3a6266; background: rgb(2 15 17 / 94%); }
+.target-terminal > span {
+    position: absolute; top: .75rem; left: .85rem; z-index: 1; color: var(--accent);
+    font: 700 .52rem/1 "Cascadia Mono", Consolas, monospace; letter-spacing: .08em;
+}
+.target-terminal textarea { min-height: 7rem; padding-top: 1.75rem; border: 0; background: transparent; }
+.target-terminal:focus-within { border-color: #65d7c8; box-shadow: 0 0 0 1px #65d7c8, 0 0 1.5rem rgb(74 222 205 / 12%); }
+.target-terminal:focus-within > span { text-shadow: 0 0 .7rem var(--accent); }
+.result { padding: 0; }
+.result-command {
+    display: flex; justify-content: space-between; padding: .55rem .75rem; border-bottom: 1px solid #28484c;
+    background: #071b1e; color: #72999b; font: 700 .5rem/1 Consolas, monospace; letter-spacing: .11em;
+}
+.result-command b { color: currentColor; font-weight: 700; }
+.verdict-layout { display: grid; grid-template-columns: 6.8rem 1fr; gap: 1rem; align-items: center; padding: 1.15rem 1rem .8rem; }
+.risk-instrument { position: relative; display: grid; width: 6.6rem; height: 6.6rem; place-items: center; }
+.risk-instrument svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.risk-instrument circle { fill: none; stroke-width: 3; }
+.risk-track { stroke: #1d4246; }
+.risk-value {
+    stroke: var(--unknown); stroke-dasharray: 263.9; stroke-dashoffset: var(--risk-offset, 263.9);
+    stroke-linecap: square; filter: drop-shadow(0 0 4px currentColor); transition: stroke-dashoffset .7s ease;
+}
+.result[data-verdict="SAFE"] .risk-value { stroke: var(--safe); }
+.result[data-verdict="PHISHING"] .risk-value { stroke: var(--danger); }
+.risk-instrument::before, .risk-instrument::after { position: absolute; background: #21484b; content: ""; }
+.risk-instrument::before { width: 3.8rem; height: 1px; }
+.risk-instrument::after { width: 1px; height: 3.8rem; }
+.risk-instrument .verdict-mark {
+    z-index: 1; width: 2.3rem; height: 2.3rem; margin-top: -.8rem; border-radius: 0;
+    clip-path: polygon(50% 0, 100% 25%, 88% 82%, 50% 100%, 12% 82%, 0 25%);
+}
+.risk-instrument .confidence { position: absolute; bottom: 1.25rem; z-index: 2; padding: 0; border: 0; background: transparent; font-size: .58rem; }
+.verdict-copy { min-width: 0; }
+.verdict-copy h2 { font-size: 1.18rem; }
+.verdict-copy .result-message { margin-top: .65rem; }
+.threat-meter { display: grid; grid-template-columns: auto 1fr; gap: .7rem; align-items: center; margin: 0 1rem .85rem; }
+.threat-meter > span { color: #789b9d; font: 700 .5rem/1 Consolas, monospace; letter-spacing: .08em; }
+.threat-meter > div { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; }
+.threat-meter i { height: .3rem; background: #183a3e; transform: skewX(-14deg); }
+.threat-meter i.active { background: var(--unknown); box-shadow: 0 0 .5rem rgb(255 180 59 / 35%); }
+.result[data-verdict="SAFE"] .threat-meter i.active { background: var(--safe); }
+.result[data-verdict="PHISHING"] .threat-meter i.active { background: var(--danger); }
+.result .domain-context, .result .result-details, .result .signals { margin-inline: 1rem; }
+.result .signals { margin-bottom: 1rem; }

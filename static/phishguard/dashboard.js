@@ -179,17 +179,59 @@ async function refreshStats() {
     }
 }
 
-function renderScanResult(result, kind, title, message, context = "") {
+function renderScanResult(result, kind, title, message, context = "", risk = 0) {
     result.hidden = false;
     result.className = `result result-${kind}`;
+    const normalizedRisk = Math.min(100, Math.max(0, Number(risk) || 0));
+    result.style.setProperty("--risk-offset", String(263.9 * (1 - normalizedRisk / 100)));
+    result.style.setProperty("--risk-angle", `${normalizedRisk * 3.6}deg`);
+
+    const command = document.createElement("div");
+    command.className = "result-command";
+    const commandLabel = document.createElement("span");
+    commandLabel.textContent = "ANALYSIS://COMPLETE";
+    const resultCode = document.createElement("b");
+    resultCode.textContent = `PG-${kind.slice(0, 2).toUpperCase()}-${String(Math.round(normalizedRisk)).padStart(3, "0")}`;
+    command.append(commandLabel, resultCode);
+
+    const layout = document.createElement("div");
+    layout.className = "result-layout";
+    const instrument = document.createElement("div");
+    instrument.className = "result-instrument";
+    instrument.setAttribute("aria-hidden", "true");
+    const ring = document.createElement("span");
+    ring.className = "result-ring";
+    const score = document.createElement("strong");
+    score.textContent = String(Math.round(normalizedRisk));
+    const scoreLabel = document.createElement("small");
+    scoreLabel.textContent = "RISK";
+    instrument.append(ring, score, scoreLabel);
+
+    const copy = document.createElement("div");
+    copy.className = "result-copy";
     const heading = document.createElement("strong");
     heading.textContent = title;
     const detail = document.createElement("span");
     detail.textContent = message;
+    copy.append(heading, detail);
+    layout.append(instrument, copy);
+
+    const meter = document.createElement("div");
+    meter.className = "result-meter";
+    const meterLabel = document.createElement("span");
+    meterLabel.textContent = "RISK VECTOR";
+    const segments = document.createElement("div");
+    for (let index = 0; index < 10; index += 1) {
+        const segment = document.createElement("i");
+        segment.classList.toggle("active", index < Math.ceil(normalizedRisk / 10));
+        segments.append(segment);
+    }
+    meter.append(meterLabel, segments);
+
     const contextNote = document.createElement("small");
     contextNote.className = "result-context";
     contextNote.textContent = context;
-    replaceChildren(result, heading, detail, contextNote);
+    replaceChildren(result, command, layout, meter, contextNote);
 }
 
 async function submitScan(event) {
@@ -232,6 +274,7 @@ async function submitScan(event) {
             result,
             ...(presentations[status] || presentations.UNKNOWN),
             data.domain_context || "",
+            data.risk_score,
         );
         setAnalysisStage("complete");
         await refreshStats();

@@ -40,12 +40,19 @@ function renderResult(payload) {
     const presentation = presentations[status] || presentations.UNKNOWN;
     result.hidden = false;
     result.dataset.verdict = status;
+    const risk = Math.min(100, Math.max(0, Number(payload.risk_score) || 0));
+    result.style.setProperty("--risk-progress", String(risk / 100));
+    result.style.setProperty("--risk-offset", String(263.9 * (1 - risk / 100)));
+    replaceText("result-code", `PG-${status.slice(0, 2)}-${String(Math.round(risk)).padStart(3, "0")}`);
     replaceText("verdict-label", status === "UNKNOWN" ? "Use caution" : "Verdict");
     replaceText("verdict-mark", presentation.mark);
     replaceText("verdict-title", presentation.title);
     const confidenceSuffix = payload.confidence_basis === "policy-assurance" ? " policy" : "";
     replaceText("confidence", Number.isFinite(Number(payload.confidence)) ? `${Number(payload.confidence).toFixed(1)}%${confidenceSuffix}` : "");
     replaceText("result-message", payload.message || "No explanation was provided.");
+    byId("threat-meter").querySelectorAll("i").forEach((segment, index) => {
+        segment.classList.toggle("active", index < Math.ceil(risk / 10));
+    });
     const domainContext = byId("domain-context");
     domainContext.hidden = !payload.domain_context;
     domainContext.dataset.listed = String(payload.domain_listed === true);

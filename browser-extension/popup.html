@@ -25,7 +25,7 @@
             <h1 id="scanner-title">Check before you trust</h1>
             <form id="scan-form" novalidate>
                 <label for="target-url">Page or link</label>
-                <textarea id="target-url" name="url" rows="3" maxlength="500" spellcheck="false" required aria-describedby="url-help"></textarea>
+                <div class="target-terminal"><span aria-hidden="true">TARGET://</span><textarea id="target-url" name="url" rows="3" maxlength="500" spellcheck="false" required aria-describedby="url-help"></textarea></div>
                 <p id="url-help" class="help"><span>The destination is never opened.</span><kbd>ENTER</kbd> analyze <span aria-hidden="true">/</span> <kbd>SHIFT+ENTER</kbd> new line</p>
                 <button id="scan-button" class="primary-button" type="submit"><span>Analyze URL</span><i aria-hidden="true">→</i></button>
             </form>
@@ -37,12 +37,20 @@
         </section>
 
         <section id="result" class="result" role="status" aria-live="polite" hidden>
-            <div class="verdict-row">
-                <span id="verdict-mark" class="verdict-mark" aria-hidden="true">?</span>
-                <div><p id="verdict-label" class="eyebrow">Verdict</p><h2 id="verdict-title">Awaiting analysis</h2></div>
-                <strong id="confidence" class="confidence"></strong>
+            <div class="result-command"><span>ANALYSIS://COMPLETE</span><b id="result-code">PG-000</b></div>
+            <div class="verdict-layout">
+                <div class="risk-instrument" aria-hidden="true">
+                    <svg viewBox="0 0 100 100"><circle class="risk-track" cx="50" cy="50" r="42"></circle><circle class="risk-value" cx="50" cy="50" r="42"></circle></svg>
+                    <span id="verdict-mark" class="verdict-mark">?</span>
+                    <strong id="confidence" class="confidence"></strong>
+                </div>
+                <div class="verdict-copy">
+                    <p id="verdict-label" class="eyebrow">Verdict</p>
+                    <h2 id="verdict-title">Awaiting analysis</h2>
+                    <p id="result-message" class="result-message"></p>
+                </div>
             </div>
-            <p id="result-message" class="result-message"></p>
+            <div id="threat-meter" class="threat-meter" aria-label="Risk intensity"><span>RISK VECTOR</span><div aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
             <p id="domain-context" class="domain-context" hidden></p>
             <dl id="result-details" class="result-details"></dl>
             <ul id="signals" class="signals"></ul>
