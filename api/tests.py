@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import json
 import logging
 import os
@@ -44,7 +45,6 @@ from .domains import (
     normalize_whitelist_domain,
     whitelist_candidates,
 )
-from .ml_classifier import URLCNNClassifier
 from .ml_logic import _load_shadow_classifier, predict_url_security
 from .models import ScanLog, WhitelistAuditEvent, WhitelistDomain
 from .throttles import (
@@ -492,7 +492,6 @@ class URLApiTests(APITestCase):
         self.assertTrue(response.data["domain_listed"])
         self.assertIn("does not verify this page", response.data["domain_context"])
 
-    @override_settings(PHISHGUARD_ML_ENABLED=False)
     def test_listed_platform_cannot_bypass_suspicious_url_analysis(self):
         WhitelistDomain.objects.create(domain="github.com", rank=32)
         response = self.client.post(
@@ -504,7 +503,6 @@ class URLApiTests(APITestCase):
         self.assertTrue(response.data["domain_listed"])
         self.assertGreaterEqual(response.data["risk_score"], 50)
 
-    @override_settings(PHISHGUARD_ML_ENABLED=False)
     def test_listed_user_content_and_unlisted_sites_remain_inconclusive(self):
         WhitelistDomain.objects.create(domain="github.com", rank=32)
         for url, listed in (
@@ -974,44 +972,17 @@ class GeolocationSafetyTests(SimpleTestCase):
 
 
 class MLClassifierTests(SimpleTestCase):
-    def test_committed_cnn_loads_and_distinguishes_reference_samples(self):
-        classifier = URLCNNClassifier(
-            settings.PHISHGUARD_MODEL_PATH,
-            settings.PHISHGUARD_TOKENIZER_PATH,
-        )
-
-        benign_risk = classifier.predict_probability("https://github.com/openai")
-        suspicious_risk = classifier.predict_probability(
-            "http://192.168.1.10/login/verify-account"
-        )
-
-        self.assertGreaterEqual(benign_risk, 0.0)
-        self.assertLessEqual(suspicious_risk, 1.0)
-        self.assertGreater(suspicious_risk, benign_risk)
-
-    def test_strong_ml_signal_can_trigger_a_phishing_verdict(self):
-        with patch("api.ml_logic._model_probability", return_value=0.9):
-            result = predict_url_security("https://ordinary-example.test")
-
-        self.assertEqual(result["status"], "PHISHING")
-        self.assertEqual(result["engine"], "hybrid-cnn-rules")
-        self.assertGreaterEqual(result["risk_score"], 50)
-
     def test_rules_only_fallback_is_explicit_and_inconclusive(self):
-        with patch("api.ml_logic._model_probability", return_value=None):
-            result = predict_url_security("https://ordinary-example.test")
+        result = predict_url_security("https://ordinary-example.test")
 
         self.assertEqual(result["engine"], "rules-only")
         self.assertEqual(result["status"], "UNKNOWN")
         self.assertEqual(result["confidence"], 0)
 
     def test_shadow_prediction_is_reported_without_changing_active_verdict(self):
-        with (
-            patch("api.ml_logic._model_probability", return_value=None),
-            patch(
-                "api.ml_logic._shadow_prediction",
-                return_value=("PHISHING", 98.25),
-            ),
+        with patch(
+            "api.ml_logic._shadow_prediction",
+            return_value=("PHISHING", 98.25),
         ):
             result = predict_url_security("https://ordinary-example.test")
 
@@ -1035,19 +1006,16 @@ class MLClassifierTests(SimpleTestCase):
         self.assertEqual(errors[0].id, "api.E002")
 
     def test_unseen_credential_lure_url_triggers_multiple_independent_signals(self):
-        with patch("api.ml_logic._model_probability", return_value=None):
-            result = predict_url_security(
-                "https://secure-login.verify-account.customer.example.com/"
-                "password/update"
-            )
+        result = predict_url_security(
+            "https://secure-login.verify-account.customer.example.com/password/update"
+        )
 
         self.assertEqual(result["status"], "PHISHING")
         self.assertGreaterEqual(result["risk_score"], 50)
         self.assertGreaterEqual(len(result["signals"]), 3)
 
     def test_keywords_are_tokenized_instead_of_matched_as_substrings(self):
-        with patch("api.ml_logic._model_probability", return_value=None):
-            result = predict_url_security("https://example.com/bankruptcy-report")
+        result = predict_url_security("https://example.com/bankruptcy-report")
 
         self.assertEqual(result["status"], "UNKNOWN")
         self.assertEqual(result["risk_score"], 0)
@@ -1100,14 +1068,61 @@ class MLClassifierTests(SimpleTestCase):
             ),
         )
 
-        with patch("api.ml_logic._model_probability", return_value=None):
-            for url, expected_signal in cases:
-                with self.subTest(url=url):
-                    result = predict_url_security(url)
-                    self.assertIn(expected_signal, result["signals"])
+        for url, expected_signal in cases:
+            with self.subTest(url=url):
+                result = predict_url_security(url)
+                self.assertIn(expected_signal, result["signals"])
 
 
 class LoadDomainsCommandTests(APITestCase):
+    majestic_header = (
+        "GlobalRank,TldRank,Domain,TLD,RefSubNets,RefIPs,IDN_Domain,IDN_TLD,"
+        "PrevGlobalRank,PrevTldRank,PrevRefSubNets,PrevRefIPs\n"
+    )
+
+    def test_reference_builder_verifies_and_normalizes_source(self):
+        with TemporaryDirectory() as temporary_directory:
+            source = Path(temporary_directory) / "majestic.csv"
+            destination = Path(temporary_directory) / "reference.csv"
+            source.write_text(
+                self.majestic_header
+                + "1,1,Example.COM,com,1,1,example.com,com,1,1,1,1\n"
+                + "2,2,example.com,com,1,1,example.com,com,2,2,1,1\n"
+                + "3,3,sub.example.org,org,1,1,sub.example.org,org,3,3,1,1\n",
+                encoding="utf-8",
+            )
+            checksum = hashlib.sha256(source.read_bytes()).hexdigest()
+
+            call_command(
+                "build_reference_domains",
+                input=source,
+                output=destination,
+                expected_sha256=checksum,
+                limit=2,
+            )
+
+            self.assertEqual(
+                destination.read_text(encoding="utf-8"),
+                "1,example.com\n3,sub.example.org\n",
+            )
+
+    def test_reference_builder_fails_closed_on_checksum_mismatch(self):
+        with TemporaryDirectory() as temporary_directory:
+            source = Path(temporary_directory) / "majestic.csv"
+            destination = Path(temporary_directory) / "reference.csv"
+            source.write_text(self.majestic_header, encoding="utf-8")
+
+            with self.assertRaisesMessage(CommandError, "checksum mismatch"):
+                call_command(
+                    "build_reference_domains",
+                    input=source,
+                    output=destination,
+                    expected_sha256="0" * 64,
+                    limit=1,
+                )
+
+            self.assertFalse(destination.exists())
+
     def test_loader_preserves_rank_and_skips_malformed_rows(self):
         with TemporaryDirectory() as temporary_directory:
             csv_path = Path(temporary_directory) / "domains.csv"

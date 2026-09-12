@@ -15,7 +15,13 @@ FORBIDDEN_SUFFIXES = {
     ".sqlite",
     ".sqlite3",
 }
-FORBIDDEN_NAMES = {".coverage", "db.sqlite3"}
+FORBIDDEN_NAMES = {
+    ".coverage",
+    "db.sqlite3",
+    "phishguard_cnn.h5",
+    "tokenizer.json",
+    "top1m.csv",
+}
 FORBIDDEN_PARTS = {
     ".mypy_cache",
     ".pytest_cache",

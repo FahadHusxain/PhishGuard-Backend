@@ -55,7 +55,19 @@ Exact revisions, checksums, selected fields, and transformation contracts are
 recorded in `ml_pipeline/dataset_manifest.json` and
 `ml_pipeline/open_corpus_manifest.json`.
 
-## Artifacts with unresolved provenance
+### Majestic Million domain reference
+
+- Creator: Majestic-12 Ltd
+- Source: <https://majestic.com/reports/majestic-million>
+- Download: <https://downloads.majestic.com/majestic_million.csv>
+- License: [Creative Commons Attribution 3.0 Unported](https://creativecommons.org/licenses/by/3.0/)
+- Changes: PhishGuard selects the global rank and domain, normalizes domains,
+  rejects invalid and duplicate entries, and retains the first 100,000 valid
+  ranked domains for offline domain context.
+- Reproducibility: exact retrieval time, source and output checksums, row counts,
+  and transformation are in `data/reference_domains_manifest.json`.
+
+## Removed artifacts with unresolved provenance
 
 The following historical files predate the reproducible ML pipeline and do not
 have sufficient source or redistribution records:
@@ -64,11 +76,10 @@ have sufficient source or redistribution records:
 - `ml_models/tokenizer.json`
 - `top1m.csv`
 
-They are **not licensed under the repository's MIT License**. The CNN remains
-disabled by default and is retained only as historical evaluation evidence.
-These files must not be redistributed in a release until the project owners
-establish their origin and applicable terms; otherwise they should be removed
-from the release artifact.
+They are **not licensed under the repository's MIT License** and were removed
+from the release tree. Their existence and the CNN's rejection remain visible
+in Git history and `ml_models/MODEL_CARD.md`; they must not be restored or
+redistributed unless the owners establish their origin and applicable terms.
 
 ## Software dependencies
 

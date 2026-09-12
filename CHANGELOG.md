@@ -24,6 +24,15 @@ approved for merge.
   files, private keys, databases, runtime data, and generated artifacts.
 - Joint project authorship, an MIT license for original PhishGuard work, and
   explicit third-party dataset attribution and legacy-artifact exclusions.
+- A checksum-pinned, attributed 100,000-domain Majestic Million reference
+  snapshot and a deterministic builder with CI integrity validation.
+
+### Changed
+
+- Removed the rejected historical CNN, tokenizer, unsafe activation path, and
+  runtime dependency; the auditable v4 candidate remains shadow-only.
+- Replaced the untraceable historical `top1m.csv` with the attributed reference
+  snapshot used by the domain loader.
 - A provenance-aware version 2 ML corpus contract that blocks training on
   unlicensed, source-confounded, representation-mismatched, or undated data.
 - A reproducible aggregate readiness audit for locally held ML sources, with

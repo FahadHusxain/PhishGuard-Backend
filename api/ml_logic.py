@@ -12,7 +12,6 @@ from ml_pipeline.errors import CandidateModelError
 
 from .domains import normalize_hostname, registrable_domain
 from .ensemble_classifier import RuntimeEnsembleClassifier
-from .ml_classifier import ModelLoadError, URLCNNClassifier
 
 logger = logging.getLogger(__name__)
 
@@ -132,28 +131,6 @@ def _rule_assessment(url: str) -> tuple[float, list[str]]:
 
 
 @lru_cache(maxsize=1)
-def _load_classifier() -> URLCNNClassifier | None:
-    if not settings.PHISHGUARD_ML_ENABLED:
-        return None
-
-    try:
-        return URLCNNClassifier(
-            settings.PHISHGUARD_MODEL_PATH,
-            settings.PHISHGUARD_TOKENIZER_PATH,
-        )
-    except ModelLoadError:
-        logger.exception("PhishGuard CNN could not be loaded; using rules-only mode")
-        return None
-
-
-def _model_probability(url: str) -> float | None:
-    classifier = _load_classifier()
-    if classifier is None:
-        return None
-    return classifier.predict_probability(url)
-
-
-@lru_cache(maxsize=1)
 def _load_shadow_classifier() -> RuntimeEnsembleClassifier | None:
     if not settings.PHISHGUARD_ML_SHADOW_ENABLED:
         return None
@@ -185,18 +162,8 @@ def _shadow_prediction(url: str) -> tuple[str, float] | None:
 def predict_url_security(url: str) -> dict[str, str | float | list[str]]:
     """Classify a validated URL and explain which detection engine was used."""
     rule_risk, reasons = _rule_assessment(url)
-    model_probability = _model_probability(url)
-
-    if model_probability is None:
-        engine = "rules-only"
-        risk_score = rule_risk
-    else:
-        engine = "hybrid-cnn-rules"
-        model_risk = model_probability * 100.0
-        risk_score = (
-            settings.PHISHGUARD_ML_WEIGHT * model_risk
-            + (1.0 - settings.PHISHGUARD_ML_WEIGHT) * rule_risk
-        )
+    engine = "rules-only"
+    risk_score = rule_risk
 
     risk_score = min(max(risk_score, 0.0), 100.0)
     is_phishing = risk_score >= settings.PHISHGUARD_PHISHING_THRESHOLD
@@ -204,21 +171,14 @@ def predict_url_security(url: str) -> dict[str, str | float | list[str]]:
     if is_phishing:
         status = "PHISHING"
         confidence = risk_score
-    elif engine == "rules-only":
+    else:
         status = "UNKNOWN"
         confidence = 0.0
-    else:
-        status = "SAFE"
-        confidence = 100.0 - risk_score
 
     if reasons:
         message = "; ".join(reasons[:3])
-    elif status == "PHISHING":
-        message = "The URL model detected a phishing pattern"
-    elif status == "UNKNOWN":
-        message = "The ML model is unavailable and no high-risk rule matched"
     else:
-        message = "No high-risk URL patterns were detected"
+        message = "No high-risk structural rule matched; the result is inconclusive"
 
     result: dict[str, str | float | list[str]] = {
         "status": status,
@@ -228,9 +188,6 @@ def predict_url_security(url: str) -> dict[str, str | float | list[str]]:
         "engine": engine,
         "signals": reasons,
     }
-    if model_probability is not None:
-        result["model_risk_score"] = round(model_probability * 100.0, 2)
-        result["rule_risk_score"] = round(rule_risk, 2)
     shadow = _shadow_prediction(url)
     if shadow is not None:
         shadow_status, shadow_risk = shadow

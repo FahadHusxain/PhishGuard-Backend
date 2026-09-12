@@ -247,20 +247,7 @@ if PHISHGUARD_SCAN_RETENTION_DAYS < 1:
     raise ImproperlyConfigured(
         "PHISHGUARD_SCAN_RETENTION_DAYS must be a positive integer."
     )
-PHISHGUARD_ML_ENABLED = env_bool("PHISHGUARD_ML_ENABLED", default=False)
 PHISHGUARD_ML_SHADOW_ENABLED = env_bool("PHISHGUARD_ML_SHADOW_ENABLED", default=False)
-PHISHGUARD_MODEL_PATH = Path(
-    os.getenv(
-        "PHISHGUARD_MODEL_PATH",
-        BASE_DIR / "ml_models" / "phishguard_cnn.h5",
-    )
-)
-PHISHGUARD_TOKENIZER_PATH = Path(
-    os.getenv(
-        "PHISHGUARD_TOKENIZER_PATH",
-        BASE_DIR / "ml_models" / "tokenizer.json",
-    )
-)
 PHISHGUARD_V4_ENSEMBLE_PATH = Path(
     os.getenv(
         "PHISHGUARD_V4_ENSEMBLE_PATH",
@@ -279,11 +266,8 @@ PHISHGUARD_V4_STRUCTURAL_PATH = Path(
         BASE_DIR / "ml_models" / "url_structural_candidate_v3.npz",
     )
 )
-PHISHGUARD_ML_WEIGHT = float(os.getenv("PHISHGUARD_ML_WEIGHT", "0.6"))
 PHISHGUARD_PHISHING_THRESHOLD = float(os.getenv("PHISHGUARD_PHISHING_THRESHOLD", "50"))
 
-if not 0.0 <= PHISHGUARD_ML_WEIGHT <= 1.0:
-    raise ImproperlyConfigured("PHISHGUARD_ML_WEIGHT must be between 0 and 1.")
 if not 0.0 <= PHISHGUARD_PHISHING_THRESHOLD <= 100.0:
     raise ImproperlyConfigured(
         "PHISHGUARD_PHISHING_THRESHOLD must be between 0 and 100."

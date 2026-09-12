@@ -186,11 +186,11 @@ checks.
 
 ## Detection engine
 
-The URL API currently defaults to the explainable rules engine. The historical
-CNN can be loaded through the lightweight NumPy adapter, but it is intentionally
-disabled because the repository contains no training/evaluation provenance and
-smoke evaluation shows unacceptable false positives. See
-`ml_models/MODEL_CARD.md` before changing `PHISHGUARD_ML_ENABLED`.
+The URL API currently uses the explainable rules engine. The historical CNN and
+tokenizer were removed from the release tree because their training provenance,
+redistribution rights, and accuracy could not be established. The rejection is
+preserved in `ml_models/MODEL_CARD.md` and Git history, but there is no runtime
+switch that can accidentally reactivate that artifact.
 
 The reproducible replacement experiment, dataset manifest, grouped evaluation,
 and non-promotion decision are documented in `ml_pipeline/README.md` and

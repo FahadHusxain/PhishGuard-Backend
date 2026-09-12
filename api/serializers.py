@@ -90,20 +90,7 @@ class PredictionResponseSerializer(serializers.Serializer):
     risk_score = serializers.FloatField(min_value=0, max_value=100, required=False)
     message = serializers.CharField()
     country = serializers.CharField()
-    engine = serializers.ChoiceField(
-        choices=["rules-only", "hybrid-cnn-rules"],
-        required=False,
-    )
-    model_risk_score = serializers.FloatField(
-        min_value=0,
-        max_value=100,
-        required=False,
-    )
-    rule_risk_score = serializers.FloatField(
-        min_value=0,
-        max_value=100,
-        required=False,
-    )
+    engine = serializers.ChoiceField(choices=["rules-only"], required=False)
     shadow_engine = serializers.ChoiceField(
         choices=["v4-ensemble"],
         required=False,

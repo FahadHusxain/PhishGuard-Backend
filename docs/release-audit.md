@@ -34,10 +34,11 @@ grant are documented separately in `THIRD_PARTY_NOTICES.md`.
    compromised and must never be reused. Any environment that used it requires
    a newly generated secret. History rewriting is intentionally not attempted
    because it is disruptive and would require owner coordination.
-2. **Unresolved artifact rights:** the historical CNN, tokenizer, and
-   `top1m.csv` are excluded from the MIT grant and must not enter a release
-   until their origin and redistribution rights are established. Remove them
-   from the release artifact if that evidence cannot be obtained.
+2. **Resolved release-tree artifact rights:** the untraceable historical CNN,
+   tokenizer, and `top1m.csv` were removed. The domain reference now has an
+   attributed, checksum-pinned source and deterministic transformation. The
+   removed files remain in Git history and must not be restored without proof
+   of origin and redistribution rights.
 3. **Final UI review:** desktop and extension review is not yet signed off, and
    mobile/accessibility review remains part of the final polish phase.
 4. **ML promotion:** v4 remains shadow-only until a qualifying prospective

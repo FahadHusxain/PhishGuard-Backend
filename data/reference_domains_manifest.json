@@ -1,0 +1,15 @@
+{
+  "format_version": 1,
+  "source_name": "Majestic Million",
+  "source_url": "https://downloads.majestic.com/majestic_million.csv",
+  "source_page": "https://majestic.com/reports/majestic-million",
+  "retrieved_at": "2026-09-12T17:23:16Z",
+  "license": "CC BY 3.0",
+  "license_url": "https://creativecommons.org/licenses/by/3.0/",
+  "source_sha256": "c5305cdd99f4b05b7a0dbfb96e2f6cb405c44ad7595a465887d8d2b0e4d0c7f4",
+  "source_rows": 1000000,
+  "retained_rows": 100000,
+  "transformation": "Selected GlobalRank and Domain, normalized domains to lowercase ASCII, rejected invalid or duplicate entries, and retained the first 100000 valid ranked domains.",
+  "output": "reference_domains.csv",
+  "output_sha256": "2fa10c2ea8381d576be273eac4c63ccdf37f6ced13769661454cb421a077f1cd"
+}

@@ -18,7 +18,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--file",
             type=Path,
-            default=Path("top1m.csv"),
+            default=Path("data/reference_domains.csv"),
             help="CSV path containing rank and domain columns",
         )
         parser.add_argument(
