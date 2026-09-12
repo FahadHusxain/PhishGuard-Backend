@@ -1,9 +1,9 @@
 # Release-readiness audit
 
-This audit records the state reviewed from modernization commit `ae3c3dc` on
-2026-09-12 plus the repository-hygiene guard introduced in the same audit
-phase. It is not release approval. The exact release candidate must be recorded
-and rechecked after final UI review.
+This living audit covers the modernization branch through the legal,
+artifact-provenance, and scoped-verdict phases completed on 2026-09-12. It is
+not release approval. The exact release-candidate SHA must be recorded and
+rechecked after final UI review.
 
 ## Verified locally
 
@@ -22,6 +22,12 @@ and rechecked after final UI review.
   with complete schema, migration history, and scan-row counts; the temporary
   unencrypted dump was removed afterward.
 - The exact audit baseline passed both required GitHub Actions jobs.
+- The untraceable legacy CNN, tokenizer, and popularity file are absent from
+  the release tree; CI prevents their filenames from being restored.
+- The replacement 100,000-domain reference is attributed, checksum-pinned,
+  deterministically generated, and checked in CI.
+- Exact official-platform roots use a separate reviewed registry with a
+  fail-closed Django system check; popularity alone never produces `SAFE`.
 
 ## Blocking owner decisions
 
@@ -39,8 +45,8 @@ grant are documented separately in `THIRD_PARTY_NOTICES.md`.
    attributed, checksum-pinned source and deterministic transformation. The
    removed files remain in Git history and must not be restored without proof
    of origin and redistribution rights.
-3. **Final UI review:** desktop and extension review is not yet signed off, and
-   mobile/accessibility review remains part of the final polish phase.
+3. **Final UI review:** automated web and extension contracts pass, but desktop,
+   popup, narrow-screen, keyboard, and contrast review still needs human sign-off.
 4. **ML promotion:** v4 remains shadow-only until a qualifying prospective
    holdout and controlled shadow review pass the frozen policy.
 

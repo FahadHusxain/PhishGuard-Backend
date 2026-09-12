@@ -15,6 +15,9 @@ python -m coverage report
 python -m pip check
 python -m pip_audit --local --strict
 python scripts/check_docs.py
+python scripts/check_repository.py
+python scripts/check_reference_data.py
+python scripts/check_extension.py
 ```
 
 CI repeats these checks, validates hardened deployment settings, builds the
@@ -28,6 +31,8 @@ the demonstration to a single memorized URL. Select examples from each class:
 
 | Class | Example | Behavior being demonstrated |
 | --- | --- | --- |
+| Reviewed official root | `https://github.com/` | Scoped low-risk result with policy-assurance label |
+| Official user content | `https://github.com/example/project` | Inconclusive because root trust does not extend to content |
 | Ordinary URL | `https://example.com/` | Accepted and analyzed without visiting the page |
 | Credential lure | `http://secure-login.example/verify/account` | Multiple explainable risk signals |
 | IP hostname | `http://192.0.2.10/login` | IP-address and insecure-login signals |
