@@ -8,7 +8,7 @@ alter trust decisions, exhaust application resources, or corrupt audit data.
 
 ## Assets
 
-- integrity of phishing verdicts and trusted-domain records;
+- integrity of phishing verdicts and domain-reference records;
 - administrator sessions and deployment secrets;
 - scan history, IP-derived metadata, and audit actor identities;
 - availability of the API, PostgreSQL, and shared throttling cache;
@@ -35,7 +35,8 @@ alter trust decisions, exhaust application resources, or corrupt audit data.
 | --- | --- | --- | --- |
 | SSRF | URL points to localhost, metadata service, or private IPv6 | Core analysis never requests the submitted URL; optional geolocation resolves only globally routable addresses and contacts a fixed provider | Keep page fetching out of the API unless isolated behind a dedicated fetcher policy |
 | Parser confusion | credentials, malformed ports, Unicode hostnames, trailing dots | strict serializer validation, standard URL parser, canonical IDNA hostname handling | Differential parser behavior must be regression-tested when libraries change |
-| Trust-boundary bypass | trusting `example.co.uk` accidentally trusts a public suffix or sibling tenant | offline public-suffix-aware candidates, private suffix support, canonical uniqueness, positive-rank filter | A legitimate trusted site can later be compromised |
+| Domain-list boundary bypass | listing `example.co.uk` accidentally matches a public suffix or sibling tenant | offline public-suffix-aware candidates, private suffix support, canonical uniqueness, positive-rank filter | A listed site can later be compromised |
+| Popularity mistaken for safety | a top-ranked or user-content domain causes every path to be labeled safe | detection always runs; list membership is separate context; rules-only low risk remains `UNKNOWN` | The list is contextual reputation data, not page-level ground truth |
 | Unauthorized trust mutation | anonymous caller marks a phishing domain safe | active staff session, explicit add/change permissions, CSRF, separate admin throttle | Privileged account compromise remains possible; use strong passwords and platform MFA |
 | Audit repudiation | administrator denies changing trust data | append-only admin presentation plus actor snapshot, reason, request ID and timestamp | Database administrators can alter records; export logs to controlled storage for stronger assurance |
 | Sensitive-data disclosure | dashboard exposes submitted paths or recent targets | origin-only storage, anonymous aggregate-only statistics, permission-gated recent activity, no-store responses | Hostnames can still be sensitive; enforce retention and restrict database access |
@@ -65,10 +66,10 @@ alter trust decisions, exhaust application resources, or corrupt audit data.
 
 ## Accepted limitations
 
-PhishGuard is currently a lexical decision-support system. It does not inspect
+PhishGuard is currently a URL-based decision-support system. It does not inspect
 page content, redirects, certificates, domain age, DNS reputation, brand logos,
 or browser behavior. Consequently, a novel phishing URL can be `UNKNOWN`, and a
-trusted domain can host malicious content after compromise. These are explicit
+listed domain can host malicious content after compromise. These are explicit
 product limits, not defects to hide in a demonstration.
 
 ## Review triggers

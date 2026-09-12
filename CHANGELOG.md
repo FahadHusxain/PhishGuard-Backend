@@ -49,6 +49,8 @@ approved for merge.
   of making an unsupported claim that an arbitrary URL is safe.
 - Trusted-domain imports can explicitly refresh stale existing ranks while the
   safe default continues to preserve administrator-managed entries.
+- Domain-list membership is now contextual metadata and never short-circuits
+  URL analysis or independently produces a `SAFE` verdict.
 - Gunicorn's unused filesystem control socket is disabled so the hardened,
   read-only container starts without attempting to write under the app home.
 - Whitelist mutation now requires an authorized staff session and explicit

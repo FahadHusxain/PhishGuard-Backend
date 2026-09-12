@@ -187,7 +187,7 @@ class OperationalEndpointTests(APITestCase):
         self.assertContains(response, "/static/phishguard/dashboard.js")
         self.assertContains(response, "Link analysis console")
         self.assertContains(response, 'class="side-rail"')
-        self.assertContains(response, "Trusted-domain index")
+        self.assertContains(response, "Listed-domain index")
         self.assertNotContains(response, '<script src="https://')
         self.assertNotContains(response, '<link rel="stylesheet" href="https://')
         self.assertNotContains(response, "onclick=")
@@ -448,8 +448,40 @@ class URLApiTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["status"], "SAFE")
-        self.assertEqual(response.data["confidence"], 100)
+        self.assertEqual(response.data["status"], "UNKNOWN")
+        self.assertEqual(response.data["confidence"], 0)
+        self.assertTrue(response.data["domain_listed"])
+        self.assertIn("does not verify this page", response.data["domain_context"])
+
+    @override_settings(PHISHGUARD_ML_ENABLED=False)
+    def test_listed_platform_cannot_bypass_suspicious_url_analysis(self):
+        WhitelistDomain.objects.create(domain="github.com", rank=32)
+        response = self.client.post(
+            reverse("predict"),
+            {"url": "http://github.com/login/verify?next=https://example.com"},
+            format="json",
+        )
+        self.assertEqual(response.data["status"], "PHISHING")
+        self.assertTrue(response.data["domain_listed"])
+        self.assertGreaterEqual(response.data["risk_score"], 50)
+
+    @override_settings(PHISHGUARD_ML_ENABLED=False)
+    def test_listed_user_content_and_unlisted_sites_remain_inconclusive(self):
+        WhitelistDomain.objects.create(domain="github.com", rank=32)
+        for url, listed in (
+            ("https://github.com/person/project", True),
+            ("https://unlisted-example.com/torrents", False),
+        ):
+            with self.subTest(url=url):
+                response = self.client.post(
+                    reverse("predict"), {"url": url}, format="json"
+                )
+                self.assertEqual(response.data["status"], "UNKNOWN")
+                self.assertEqual(response.data["domain_listed"], listed)
+                self.assertIn(
+                    "does not" if listed else "does not imply phishing",
+                    response.data["domain_context"],
+                )
 
     def test_whitelist_does_not_cross_private_suffix_tenant_boundaries(self):
         WhitelistDomain.objects.create(domain="trusted-user.github.io", rank=1)

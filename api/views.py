@@ -91,7 +91,7 @@ def get_ip_location(url: str) -> tuple[str | None, str]:
     return ip_address, country
 
 
-def _trusted_domain(hostname: str) -> WhitelistDomain | None:
+def _listed_domain(hostname: str) -> WhitelistDomain | None:
     return (
         WhitelistDomain.objects.filter(
             domain__in=whitelist_candidates(hostname),
@@ -125,23 +125,14 @@ def predict_url(request):
     hostname = hostname_from_url(url)
     stored_url = redact_url_for_storage(url)
 
-    if _trusted_domain(hostname):
-        result = {
-            "status": "SAFE",
-            "confidence": 100,
-            "message": "Domain is in the trusted whitelist",
-            "country": "Whitelisted",
-        }
-        ScanLog.objects.create(
-            origin=stored_url,
-            status=result["status"],
-            confidence=result["confidence"],
-            ip_address=None,
-            country="Whitelisted",
-        )
-        return Response(result)
-
+    listed_domain = _listed_domain(hostname)
     result = predict_url_security(url)
+    result["domain_listed"] = listed_domain is not None
+    result["domain_context"] = (
+        "Domain matches the reference list. Membership does not verify this page."
+        if listed_domain is not None
+        else "No active domain-list match. Absence does not imply phishing."
+    )
     ip_address, country = get_ip_location(url)
 
     try:
@@ -160,7 +151,7 @@ def predict_url(request):
 
 @extend_schema(
     operation_id="add_trusted_domain",
-    summary="Add a domain to the trusted whitelist",
+    summary="Add a domain to the reviewed reference list",
     request=WhitelistSubmissionSerializer,
     responses={
         200: ReportSafeResponseSerializer,
@@ -254,15 +245,15 @@ def dashboard_stats(request):
 
 
 @extend_schema(
-    operation_id="search_trusted_domains",
-    summary="Search trusted domains",
+    operation_id="search_listed_domains",
+    summary="Search the domain reference list",
     parameters=[WhitelistSearchSerializer],
     responses={
         200: WhitelistResultSerializer(many=True),
         400: ErrorEnvelopeSerializer,
         429: ErrorEnvelopeSerializer,
     },
-    tags=["Trusted domains"],
+    tags=["Domain reference"],
 )
 @api_view(["GET"])
 @permission_classes([AllowAny])

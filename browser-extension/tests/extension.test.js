@@ -33,7 +33,7 @@ test("analysis sends the versioned request without credentials or caching", asyn
         targetUrl: "https://example.com/login",
         fetchImpl: async (url, options) => {
             captured = {url, options};
-            return new Response(JSON.stringify({status: "UNKNOWN", confidence: 0, message: "Insufficient evidence"}), {
+            return new Response(JSON.stringify({status: "UNKNOWN", confidence: 0, message: "Insufficient evidence", domain_listed: true, domain_context: "Reference-listed; page not verified"}), {
                 status: 200,
                 headers: {"Content-Type": "application/json"},
             });
@@ -44,6 +44,7 @@ test("analysis sends the versioned request without credentials or caching", asyn
     assert.equal(captured.options.cache, "no-store");
     assert.deepEqual(JSON.parse(captured.options.body), {url: "https://example.com/login"});
     assert.equal(result.status, "UNKNOWN");
+    assert.equal(result.domain_listed, true);
 });
 
 test("analysis surfaces controlled backend and malformed-response errors", async () => {
@@ -62,5 +63,13 @@ test("analysis surfaces controlled backend and malformed-response errors", async
             fetchImpl: async () => new Response("{}", {status: 200}),
         }),
         /invalid analysis response/,
+    );
+    await assert.rejects(
+        analyzeUrl({
+            backendUrl: "https://guard.example",
+            targetUrl: "https://example.com",
+            fetchImpl: async () => new Response(JSON.stringify({status: "UNKNOWN", domain_listed: "yes"}), {status: 200}),
+        }),
+        /invalid domain context/,
     );
 });

@@ -81,17 +81,17 @@ administration, and read endpoints have separate configurable rate budgets.
 Set `PHISHGUARD_NUM_PROXIES` to the exact number of trusted reverse proxies so
 client addresses cannot be forged through `X-Forwarded-For`.
 
-Manual whitelist mutations through the REST endpoint create read-only audit
+Manual domain-list mutations through the REST endpoint create read-only audit
 records containing the staff actor, reason, rank transition, request ID, and
-timestamp. Repeated requests for an already-trusted domain do not create false
+timestamp. Repeated requests for an already-listed domain do not create false
 change events.
 
-Whitelist hostnames are stored in canonical lowercase ASCII form. Model and API
+Listed hostnames are stored in canonical lowercase ASCII form. Model and API
 writes normalize Unicode IDNs and trailing dots, while a database constraint
-prevents case-insensitive duplicates. This keeps trusted-domain matching
+prevents case-insensitive duplicates. This keeps domain-reference matching
 consistent regardless of how a hostname is written in a submitted URL.
 Matching uses an offline Public Suffix List, including private suffixes, so a
-trusted tenant cannot accidentally grant trust to sibling tenants or an entire
+one tenant cannot accidentally list sibling tenants or an entire
 public suffix.
 
 ## Configuration
@@ -117,7 +117,7 @@ hosting platform.
 
 Dashboard aggregates are computed with two database queries and cached for ten
 seconds by default (`PHISHGUARD_STATS_CACHE_SECONDS`). Model writes invalidate
-the cached values. Trusted-domain search uses an indexed prefix rather than an
+the cached values. Domain-reference search uses an indexed prefix rather than an
 unbounded substring scan across the full dataset.
 
 Run a bounded, read-only concurrency smoke test against a running instance with:
@@ -198,6 +198,9 @@ content, internationalized hostnames, and nonstandard ports. Keywords are
 tokenized rather than substring-matched to reduce obvious false positives.
 Rules-only results remain `UNKNOWN` when the evidence is insufficient; absence
 of a known rule is never presented as proof that an arbitrary URL is safe.
+An active popularity/reference-list match is returned separately as
+`domain_listed` plus explanatory `domain_context`; it never skips the detection
+engine or promotes an arbitrary page to `SAFE`.
 
 ## Verification
 

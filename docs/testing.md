@@ -45,7 +45,8 @@ URL, the important invariants are:
 - the service returns a controlled JSON result or validation error;
 - it does not fetch or execute the destination;
 - the response identifies the engine and explains detected signals;
-- a rules-only low score is `UNKNOWN`, not a false claim of safety;
+- a rules-only low score is `UNKNOWN`, even for a reference-listed domain;
+- suspicious signals on a listed domain still produce `PHISHING`;
 - persisted history omits path, query, fragment, and credentials.
 
 The verdict for a previously unseen URL is not predetermined. Claims of perfect
@@ -66,7 +67,7 @@ curl --request POST http://127.0.0.1:8000/api/v1/predict/ \
 
 Inspect `/api/docs/` for the versioned contract. Exercise the dashboard at wide
 and narrow viewport widths, keyboard-only navigation, empty/error/loading
-states, URL analysis, and trusted-domain search.
+states, URL analysis, and domain-reference search.
 
 ## Browser extension checks
 

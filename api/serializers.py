@@ -83,6 +83,8 @@ class WhitelistSearchSerializer(serializers.Serializer):
 
 
 class PredictionResponseSerializer(serializers.Serializer):
+    domain_listed = serializers.BooleanField(required=False)
+    domain_context = serializers.CharField(required=False)
     status = serializers.ChoiceField(choices=["SAFE", "PHISHING", "UNKNOWN"])
     confidence = serializers.FloatField(min_value=0, max_value=100)
     risk_score = serializers.FloatField(min_value=0, max_value=100, required=False)

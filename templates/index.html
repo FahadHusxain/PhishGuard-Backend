@@ -21,7 +21,7 @@
             <nav aria-label="Primary navigation">
                 <a class="active" href="#scanner"><span>01</span> Analyze</a>
                 <a href="#intelligence"><span>02</span> Intelligence</a>
-                <a href="#trusted-domains"><span>03</span> Trust index</a>
+                <a href="#trusted-domains"><span>03</span> Domain reference</a>
             </nav>
             <div class="rail-links">
                 <a href="/api/docs/">API documentation <span aria-hidden="true">↗</span></a>
@@ -51,7 +51,7 @@
                     <p class="field-help">Accepts any complete HTTP(S) link. Paths, queries, and fragments are not retained.</p>
                 </form>
                 <div id="scan-result" class="result" role="status" aria-live="polite" hidden></div>
-                <div class="analysis-note"><strong>How it works</strong><span>Structural signals and trusted-domain intelligence are evaluated locally. The destination is never opened by PhishGuard.</span></div>
+                <div class="analysis-note"><strong>How it works</strong><span>URL signals are evaluated without opening the destination. Domain-list membership is context, never proof that a page is safe.</span></div>
             </section>
 
             <section id="intelligence" class="intelligence-grid" aria-label="Aggregate scan intelligence">
@@ -91,7 +91,7 @@
 
             <section id="trusted-domains" class="module trust-module" aria-labelledby="trusted-title">
                 <div class="module-heading">
-                    <div><p class="kicker">Curated allowlist</p><h2 id="trusted-title">Trusted-domain index</h2></div>
+                    <div><p class="kicker">Reference data</p><h2 id="trusted-title">Listed-domain index</h2></div>
                     <strong id="whitelist-count" class="database-count">0 domains</strong>
                 </div>
                 <form id="search-form" class="input-row" novalidate>
@@ -102,7 +102,7 @@
                 <p id="search-status" class="field-help" role="status" aria-live="polite">Enter at least two characters to search by prefix.</p>
                 <div class="table-wrap">
                     <table>
-                        <caption class="visually-hidden">Trusted-domain search results</caption>
+                        <caption class="visually-hidden">Listed-domain search results</caption>
                         <thead><tr><th scope="col">Trust rank</th><th scope="col">Canonical domain</th></tr></thead>
                         <tbody id="domain-results"><tr><td colspan="2">No query submitted.</td></tr></tbody>
                     </table>

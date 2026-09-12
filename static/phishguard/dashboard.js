@@ -128,14 +128,17 @@ async function refreshStats() {
     }
 }
 
-function renderScanResult(result, kind, title, message) {
+function renderScanResult(result, kind, title, message, context = "") {
     result.hidden = false;
     result.className = `result result-${kind}`;
     const heading = document.createElement("strong");
     heading.textContent = title;
     const detail = document.createElement("span");
     detail.textContent = message;
-    replaceChildren(result, heading, detail);
+    const contextNote = document.createElement("small");
+    contextNote.className = "result-context";
+    contextNote.textContent = context;
+    replaceChildren(result, heading, detail, contextNote);
 }
 
 async function submitScan(event) {
@@ -160,11 +163,15 @@ async function submitScan(event) {
         const confidence = Number.isFinite(Number(data.confidence)) ? `${Number(data.confidence).toFixed(1)}% confidence. ` : "";
         const status = String(data.status || "UNKNOWN").toUpperCase();
         const presentations = {
-            SAFE: ["safe", "No strong phishing indicators", confidence + (data.message || "The URL matched a trusted signal.")],
+            SAFE: ["safe", "Low-risk model result", confidence + (data.message || "The validated model returned a low risk score.")],
             PHISHING: ["danger", "High-risk URL", confidence + (data.message || "Phishing indicators were detected.")],
             UNKNOWN: ["unknown", "Inconclusive result", data.message || "There is not enough evidence for a reliable verdict."],
         };
-        renderScanResult(result, ...(presentations[status] || presentations.UNKNOWN));
+        renderScanResult(
+            result,
+            ...(presentations[status] || presentations.UNKNOWN),
+            data.domain_context || "",
+        );
         await refreshStats();
     } catch (error) {
         const retry = error.retryAfter ? ` Try again in ${error.retryAfter} seconds.` : "";
@@ -207,7 +214,7 @@ async function submitSearch(event) {
             const row = document.createElement("tr");
             const cell = document.createElement("td");
             cell.colSpan = 2;
-            cell.textContent = "No matching trusted domains.";
+            cell.textContent = "No matching reference domains.";
             row.append(cell);
             replaceChildren(results, row);
             status.textContent = "No results found.";

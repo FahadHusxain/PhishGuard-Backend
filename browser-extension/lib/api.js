@@ -65,5 +65,11 @@ export async function analyzeUrl({
     if (!payload || !["SAFE", "PHISHING", "UNKNOWN"].includes(payload.status)) {
         throw new Error("The backend returned an invalid analysis response.");
     }
+    if (
+        (payload.domain_listed !== undefined && typeof payload.domain_listed !== "boolean")
+        || (payload.domain_context !== undefined && typeof payload.domain_context !== "string")
+    ) {
+        throw new Error("The backend returned invalid domain context.");
+    }
     return payload;
 }

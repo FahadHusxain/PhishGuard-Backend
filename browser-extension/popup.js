@@ -21,7 +21,7 @@ function renderResult(payload) {
     const result = byId("result");
     const status = String(payload.status || "UNKNOWN").toUpperCase();
     const presentations = {
-        SAFE: {mark: "✓", title: "No strong threat detected"},
+        SAFE: {mark: "✓", title: "Low-risk model result"},
         PHISHING: {mark: "!", title: "High-risk link detected"},
         UNKNOWN: {mark: "?", title: "Result is inconclusive"},
     };
@@ -33,6 +33,10 @@ function renderResult(payload) {
     replaceText("verdict-title", presentation.title);
     replaceText("confidence", Number.isFinite(Number(payload.confidence)) ? `${Number(payload.confidence).toFixed(1)}%` : "");
     replaceText("result-message", payload.message || "No explanation was provided.");
+    const domainContext = byId("domain-context");
+    domainContext.hidden = !payload.domain_context;
+    domainContext.dataset.listed = String(payload.domain_listed === true);
+    domainContext.textContent = payload.domain_context || "";
 
     const details = byId("result-details");
     details.replaceChildren(

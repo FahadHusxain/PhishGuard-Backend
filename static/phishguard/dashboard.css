@@ -60,6 +60,7 @@ input:focus-visible, button:focus-visible, a:focus-visible { outline: 3px solid 
 .analysis-note strong { color: var(--acid); font-family: Consolas, monospace; text-transform: uppercase; }
 .result { position: relative; z-index: 1; margin-top: 1.25rem; padding: 1rem 1.15rem; border-left: 4px solid var(--warning); background: #17353a; }
 .result strong { display: block; margin-bottom: .2rem; }
+.result-context { display: block; margin-top: .65rem; padding-top: .65rem; border-top: 1px solid #38575b; color: #b7c5c5; }
 .result-safe { border-color: #58d6a8; } .result-danger, .result-error { border-color: #ff796a; } .result-unknown { border-color: #f0bd55; }
 .intelligence-grid { margin-top: 3rem; }
 .section-label { display: flex; align-items: center; gap: .8rem; margin-bottom: 1rem; }
