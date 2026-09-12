@@ -128,11 +128,20 @@ def predict_url(request):
     listed_domain = _listed_domain(hostname)
     result = predict_url_security(url)
     result["domain_listed"] = listed_domain is not None
-    result["domain_context"] = (
-        "Domain matches the reference list. Membership does not verify this page."
-        if listed_domain is not None
-        else "No active domain-list match. Absence does not imply phishing."
-    )
+    if result["status"] == "SAFE" and result.get("engine") == "verified-domain-rules":
+        result["domain_context"] = (
+            "Exact root matches the reviewed official-platform registry; linked "
+            "pages and content are outside this verdict."
+        )
+    elif listed_domain is not None:
+        result["domain_context"] = (
+            "Domain matches the popularity reference. Membership does not verify "
+            "this page."
+        )
+    else:
+        result["domain_context"] = (
+            "No popularity-reference match. Absence does not imply phishing."
+        )
     ip_address, country = get_ip_location(url)
 
     try:

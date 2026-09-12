@@ -12,6 +12,7 @@ from ml_pipeline.errors import CandidateModelError
 
 from .domains import normalize_hostname, registrable_domain
 from .ensemble_classifier import RuntimeEnsembleClassifier
+from .verified_platforms import is_verified_platform_root
 
 logger = logging.getLogger(__name__)
 
@@ -167,15 +168,25 @@ def predict_url_security(url: str) -> dict[str, str | float | list[str]]:
 
     risk_score = min(max(risk_score, 0.0), 100.0)
     is_phishing = risk_score >= settings.PHISHGUARD_PHISHING_THRESHOLD
+    verified_root = not is_phishing and is_verified_platform_root(url)
 
     if is_phishing:
         status = "PHISHING"
         confidence = risk_score
+        confidence_basis = "rule-score"
+    elif verified_root:
+        status = "SAFE"
+        confidence = 90.0
+        confidence_basis = "policy-assurance"
+        engine = "verified-domain-rules"
     else:
         status = "UNKNOWN"
         confidence = 0.0
+        confidence_basis = "rule-score"
 
-    if reasons:
+    if status == "SAFE":
+        message = "Reviewed official platform root; this does not verify linked content"
+    elif reasons:
         message = "; ".join(reasons[:3])
     else:
         message = "No high-risk structural rule matched; the result is inconclusive"
@@ -183,6 +194,7 @@ def predict_url_security(url: str) -> dict[str, str | float | list[str]]:
     result: dict[str, str | float | list[str]] = {
         "status": status,
         "confidence": round(confidence, 2),
+        "confidence_basis": confidence_basis,
         "risk_score": round(risk_score, 2),
         "message": message,
         "engine": engine,

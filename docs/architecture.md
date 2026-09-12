@@ -93,16 +93,17 @@ background service worker and does not alter visited pages.
 2. Canonical hostname candidates are checked against the domain reference list.
 3. Independent URL-structure rules always produce a risk score and reasons;
    list membership never bypasses detection.
-4. If a validated model is explicitly enabled, its probability is combined
-   with the rule score using the configured weight.
-5. A score at or above the configured threshold is `PHISHING`.
-6. Rules-only analysis below the threshold is `UNKNOWN`, not `SAFE`, because
+4. A score at or above the configured threshold is `PHISHING`.
+5. An exact HTTPS root in the small reviewed official-platform registry may be
+   `SAFE` when no high-risk rule matches. This policy never extends to content
+   paths, queries, fragments, nonstandard ports, or arbitrary subdomains.
+6. Other rules-only analysis below the threshold is `UNKNOWN`, not `SAFE`, because
    absence of a lexical signal is not proof of safety.
 7. `domain_listed` and `domain_context` provide reputation context separately;
    popularity or an administrative list entry never verifies the exact page.
 
-The historical CNN and current candidate remain disabled; their limitations
-and evaluation evidence are recorded in the model cards.
+The historical CNN was removed. The current v4 candidate remains shadow-only;
+its limitations and evaluation evidence are recorded in the model cards.
 
 ## Availability and scaling
 

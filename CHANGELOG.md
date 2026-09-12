@@ -33,6 +33,9 @@ approved for merge.
   runtime dependency; the auditable v4 candidate remains shadow-only.
 - Replaced the untraceable historical `top1m.csv` with the attributed reference
   snapshot used by the domain loader.
+- Added a conservative low-risk verdict for exact HTTPS roots in a small,
+  reviewed official-platform registry while keeping all paths and popularity
+  matches inconclusive unless stronger evidence exists.
 - A provenance-aware version 2 ML corpus contract that blocks training on
   unlicensed, source-confounded, representation-mismatched, or undated data.
 - A reproducible aggregate readiness audit for locally held ML sources, with

@@ -220,10 +220,11 @@ async function submitScan(event) {
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({url: input.value.trim()}),
         });
-        const confidence = Number.isFinite(Number(data.confidence)) ? `${Number(data.confidence).toFixed(1)}% confidence. ` : "";
+        const confidenceLabel = data.confidence_basis === "policy-assurance" ? "policy assurance" : "confidence";
+        const confidence = Number.isFinite(Number(data.confidence)) ? `${Number(data.confidence).toFixed(1)}% ${confidenceLabel}. ` : "";
         const status = String(data.status || "UNKNOWN").toUpperCase();
         const presentations = {
-            SAFE: ["safe", "Low-risk model result", confidence + (data.message || "The validated model returned a low risk score.")],
+            SAFE: ["safe", "Low-risk official address", confidence + (data.message || "The reviewed address passed the active checks.")],
             PHISHING: ["danger", "High-risk URL", confidence + (data.message || "Phishing indicators were detected.")],
             UNKNOWN: ["unknown", "Inconclusive result", data.message || "There is not enough evidence for a reliable verdict."],
         };

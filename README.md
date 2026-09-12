@@ -209,10 +209,11 @@ credential-lure tokens, nested redirect URLs, unusual subdomain depth, encoded
 content, internationalized hostnames, and nonstandard ports. Keywords are
 tokenized rather than substring-matched to reduce obvious false positives.
 Rules-only results remain `UNKNOWN` when the evidence is insufficient; absence
-of a known rule is never presented as proof that an arbitrary URL is safe.
-An active popularity/reference-list match is returned separately as
-`domain_listed` plus explanatory `domain_context`; it never skips the detection
-engine or promotes an arbitrary page to `SAFE`.
+of a known rule is never presented as proof that an arbitrary URL is safe. An
+exact HTTPS root in the small reviewed official-platform registry may receive a
+scoped low-risk result; paths, queries, fragments, ports, and other subdomains
+remain outside that policy. Popularity-reference membership is returned
+separately as `domain_listed` plus explanatory `domain_context`.
 
 ## Verification
 

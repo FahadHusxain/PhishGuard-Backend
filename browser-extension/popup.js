@@ -33,7 +33,7 @@ function renderResult(payload) {
     const result = byId("result");
     const status = String(payload.status || "UNKNOWN").toUpperCase();
     const presentations = {
-        SAFE: {mark: "✓", title: "Low-risk model result"},
+        SAFE: {mark: "✓", title: "Low-risk official address"},
         PHISHING: {mark: "!", title: "High-risk link detected"},
         UNKNOWN: {mark: "?", title: "Result is inconclusive"},
     };
@@ -43,7 +43,8 @@ function renderResult(payload) {
     replaceText("verdict-label", status === "UNKNOWN" ? "Use caution" : "Verdict");
     replaceText("verdict-mark", presentation.mark);
     replaceText("verdict-title", presentation.title);
-    replaceText("confidence", Number.isFinite(Number(payload.confidence)) ? `${Number(payload.confidence).toFixed(1)}%` : "");
+    const confidenceSuffix = payload.confidence_basis === "policy-assurance" ? " policy" : "";
+    replaceText("confidence", Number.isFinite(Number(payload.confidence)) ? `${Number(payload.confidence).toFixed(1)}%${confidenceSuffix}` : "");
     replaceText("result-message", payload.message || "No explanation was provided.");
     const domainContext = byId("domain-context");
     domainContext.hidden = !payload.domain_context;

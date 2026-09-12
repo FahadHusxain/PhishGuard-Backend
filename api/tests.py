@@ -52,6 +52,7 @@ from .throttles import (
     AnalysisRateThrottle,
     ReadRateThrottle,
 )
+from .verified_platforms import is_verified_platform_root, verified_platform_domains
 from .views import get_ip_location
 
 TEST_STATIC_STORAGES = {
@@ -491,6 +492,17 @@ class URLApiTests(APITestCase):
         self.assertEqual(response.data["confidence"], 0)
         self.assertTrue(response.data["domain_listed"])
         self.assertIn("does not verify this page", response.data["domain_context"])
+
+    def test_reviewed_official_root_is_low_risk_through_public_api(self):
+        response = self.client.post(
+            reverse("predict"), {"url": "https://github.com/"}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "SAFE")
+        self.assertEqual(response.data["confidence_basis"], "policy-assurance")
+        self.assertEqual(response.data["engine"], "verified-domain-rules")
+        self.assertIn("outside this verdict", response.data["domain_context"])
 
     def test_listed_platform_cannot_bypass_suspicious_url_analysis(self):
         WhitelistDomain.objects.create(domain="github.com", rank=32)
@@ -972,6 +984,48 @@ class GeolocationSafetyTests(SimpleTestCase):
 
 
 class MLClassifierTests(SimpleTestCase):
+    def test_reviewed_official_roots_receive_a_scoped_low_risk_verdict(self):
+        for url in (
+            "https://google.com/",
+            "https://www.youtube.com/",
+            "https://facebook.com",
+            "https://www.linkedin.com/",
+            "https://github.com/",
+        ):
+            with self.subTest(url=url):
+                result = predict_url_security(url)
+                self.assertEqual(result["status"], "SAFE")
+                self.assertEqual(result["engine"], "verified-domain-rules")
+                self.assertIn("official platform root", result["message"])
+
+    def test_platform_trust_is_not_extended_to_content_or_weaker_urls(self):
+        for url in (
+            "https://github.com/user/repository",
+            "https://gist.github.com/",
+            "https://github.com/?redirect=example",
+            "http://github.com/",
+            "https://github.com:8443/",
+        ):
+            with self.subTest(url=url):
+                self.assertFalse(is_verified_platform_root(url))
+                self.assertNotEqual(predict_url_security(url)["status"], "SAFE")
+
+    def test_verified_platform_registry_is_unique_and_expected(self):
+        verified_platform_domains.cache_clear()
+        self.addCleanup(verified_platform_domains.cache_clear)
+        self.assertEqual(
+            verified_platform_domains(),
+            frozenset(
+                {
+                    "facebook.com",
+                    "github.com",
+                    "google.com",
+                    "linkedin.com",
+                    "youtube.com",
+                }
+            ),
+        )
+
     def test_rules_only_fallback_is_explicit_and_inconclusive(self):
         result = predict_url_security("https://ordinary-example.test")
 

@@ -45,7 +45,8 @@ URL, the important invariants are:
 - the service returns a controlled JSON result or validation error;
 - it does not fetch or execute the destination;
 - the response identifies the engine and explains detected signals;
-- a rules-only low score is `UNKNOWN`, even for a reference-listed domain;
+- a rules-only low score is `UNKNOWN`, even for a popularity-listed domain,
+  except for exact HTTPS roots in the reviewed official-platform registry;
 - suspicious signals on a listed domain still produce `PHISHING`;
 - persisted history omits path, query, fragment, and credentials.
 
