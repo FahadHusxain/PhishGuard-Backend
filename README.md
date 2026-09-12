@@ -12,6 +12,8 @@ application, and Chromium browser extension for URL analysis.
 - [Local Compose rehearsal evidence](docs/compose-rehearsal.md)
 - [Release-readiness audit](docs/release-audit.md)
 - [Release checklist](docs/release-checklist.md)
+- [Authors and contribution roles](AUTHORS.md)
+- [Third-party notices and dataset attribution](THIRD_PARTY_NOTICES.md)
 - [ML experimentation and evaluation](ml_pipeline/README.md)
 - [ML version 2 upgrade plan](docs/ml-upgrade-plan.md)
 - [Unreleased change history](CHANGELOG.md)
@@ -225,3 +227,10 @@ ruff format --check .
 coverage run manage.py test
 coverage report
 ```
+
+## License
+
+Original PhishGuard software and documentation are available under the
+[MIT License](LICENSE), copyright 2026 Fahad Hussain, Asad Abbas, and
+contributors. Third-party datasets, dependencies, and legacy artifacts retain
+their own terms; see [Third-party notices](THIRD_PARTY_NOTICES.md).

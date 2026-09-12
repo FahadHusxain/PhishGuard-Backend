@@ -1,0 +1,78 @@
+# Third-party notices
+
+The MIT License in this repository covers original PhishGuard software and
+documentation contributed by its authors. It does not relicense third-party
+datasets, upstream works, dependencies, or artifacts whose rights are held by
+others.
+
+## Documented dataset sources
+
+Raw copies of the following training datasets are excluded from Git. PhishGuard
+stores provenance manifests, aggregate evaluation evidence, and numerical model
+artifacts produced through documented transformations.
+
+### PhiUSIIL Phishing URL (Website)
+
+- Creators: Arvind Prasad and Shalini Chandra
+- Source: <https://archive.ics.uci.edu/dataset/967/phiusiil+phishing+url+dataset>
+- Citation: Prasad, A. & Chandra, S. (2024). *PhiUSIIL Phishing URL
+  (Website)*. UCI Machine Learning Repository.
+- Associated DOI: <https://doi.org/10.1016/j.cose.2023.103545>
+- License: [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/)
+- Changes: PhishGuard selects URL and label fields, canonicalizes and splits
+  records, derives model inputs, and publishes only aggregate evidence and
+  numerical artifacts.
+
+### PhreshPhish
+
+- Creators: Thomas Dalton, Hemanth Gowda, Girish Rao, Sachin Pargi, Alireza
+  Hadj Khodabakhshi, Joseph Rombs, Stephan Jou, and Manish Marwah
+- Source: <https://huggingface.co/datasets/phreshphish/phreshphish>
+- Paper: *PhreshPhish: A Real-World, High-Quality, Large-Scale Phishing
+  Website Dataset and Benchmark*, <https://arxiv.org/abs/2507.10854>
+- License: [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/)
+- Changes: PhishGuard pins v1.0.1, projects URL metadata rather than captured
+  HTML, validates and canonicalizes records, quarantines ambiguous domains,
+  creates domain-isolated partitions, and produces aggregate evidence and
+  numerical candidate artifacts.
+
+### PhishVN
+
+- Creator: Thai Nguyen Vu
+- Source: <https://data.mendeley.com/datasets/b97hxbxtpd/4>
+- DOI: <https://doi.org/10.17632/b97hxbxtpd.4>
+- License: [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/)
+- Upstream sources named by the dataset author include NCSC Tin Nhiem Mang,
+  ChongLuaDao, and Tranco.
+- Changes: PhishGuard uses only eligible gold/silver training records, treats
+  synthesized entries conservatively as origins, canonicalizes records,
+  quarantines ambiguous domains, and produces aggregate evidence and numerical
+  candidate artifacts.
+
+CC BY 4.0 requires appropriate credit, a license link, and an indication of
+changes. Nothing in this notice implies endorsement by the dataset creators.
+Exact revisions, checksums, selected fields, and transformation contracts are
+recorded in `ml_pipeline/dataset_manifest.json` and
+`ml_pipeline/open_corpus_manifest.json`.
+
+## Artifacts with unresolved provenance
+
+The following historical files predate the reproducible ML pipeline and do not
+have sufficient source or redistribution records:
+
+- `ml_models/phishguard_cnn.h5`
+- `ml_models/tokenizer.json`
+- `top1m.csv`
+
+They are **not licensed under the repository's MIT License**. The CNN remains
+disabled by default and is retained only as historical evaluation evidence.
+These files must not be redistributed in a release until the project owners
+establish their origin and applicable terms; otherwise they should be removed
+from the release artifact.
+
+## Software dependencies
+
+Python, JavaScript, container-base, Swagger UI, and browser-platform
+dependencies retain their respective upstream licenses and notices. Installing
+or packaging PhishGuard does not replace those terms with the repository's MIT
+License.

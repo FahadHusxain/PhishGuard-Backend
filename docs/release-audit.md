@@ -25,14 +25,19 @@ and rechecked after final UI review.
 
 ## Blocking owner decisions
 
-1. **License:** the repository has no license file. The owner must choose the
-   intended permissions and add the corresponding license; contributors cannot
-   infer that legal decision.
-2. **Historical secret:** the original `main` history contains a hard-coded
+The project owners selected the MIT License for original PhishGuard work and
+recorded joint authorship. Dataset attribution and artifacts excluded from that
+grant are documented separately in `THIRD_PARTY_NOTICES.md`.
+
+1. **Historical secret:** the original `main` history contains a hard-coded
    Django secret that is absent from the modernized tree. It must be treated as
    compromised and must never be reused. Any environment that used it requires
    a newly generated secret. History rewriting is intentionally not attempted
    because it is disruptive and would require owner coordination.
+2. **Unresolved artifact rights:** the historical CNN, tokenizer, and
+   `top1m.csv` are excluded from the MIT grant and must not enter a release
+   until their origin and redistribution rights are established. Remove them
+   from the release artifact if that evidence cannot be obtained.
 3. **Final UI review:** desktop and extension review is not yet signed off, and
    mobile/accessibility review remains part of the final polish phase.
 4. **ML promotion:** v4 remains shadow-only until a qualifying prospective

@@ -6,8 +6,8 @@ for production. Complete it against one immutable candidate commit.
 ## Scope and evidence
 
 - [ ] Candidate commit SHA and release version are recorded.
-- [ ] The repository owner has selected and added an appropriate software
-      license; no license is currently granted by the repository.
+- [x] The project owners selected MIT for original PhishGuard work and added
+      separate third-party notices and exclusions.
 - [ ] Intended changes and known limitations are understandable to a reviewer.
 - [ ] Architecture, threat model, API schema, model cards, and operations runbook
       match the candidate.
