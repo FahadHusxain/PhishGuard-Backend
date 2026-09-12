@@ -7,6 +7,7 @@ import {
     permissionPattern,
     predictionEndpoint,
 } from "../lib/config.js";
+import fs from "node:fs";
 
 test("backend configuration accepts loopback HTTP and normalizes origins", () => {
     assert.equal(normalizeBackendUrl(" http://127.0.0.1:8000 "), "http://127.0.0.1:8000");
@@ -31,6 +32,12 @@ test("Enter analyzes while Shift+Enter remains available for multiline input", (
     assert.equal(isAnalyzeShortcut({key: "Enter", shiftKey: true, isComposing: false}), false);
     assert.equal(isAnalyzeShortcut({key: "Enter", shiftKey: false, isComposing: true}), false);
     assert.equal(isAnalyzeShortcut({key: "Space", shiftKey: false, isComposing: false}), false);
+});
+
+test("popup keeps a stable usable width in the extension viewport", () => {
+    const css = fs.readFileSync(new URL("../popup.css", import.meta.url), "utf8");
+    assert.match(css, /html, body \{ width: 400px; min-width: 400px; \}/);
+    assert.doesNotMatch(css, /body \{ width: 100vw; \}/);
 });
 
 test("analysis sends the versioned request without credentials or caching", async () => {

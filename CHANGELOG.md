@@ -40,6 +40,8 @@ approved for merge.
   service across low-risk, inconclusive, and high-risk outcomes.
 - Refined the dashboard and extension into a consistent high-contrast threat
   console and made Enter submit extension scans while Shift+Enter adds a line.
+- Prevented Chromium's narrow initial popup viewport from collapsing the
+  extension layout by enforcing its reviewed 400-pixel tool width.
 - A provenance-aware version 2 ML corpus contract that blocks training on
   unlicensed, source-confounded, representation-mismatched, or undated data.
 - A reproducible aggregate readiness audit for locally held ML sources, with

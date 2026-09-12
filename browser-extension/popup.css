@@ -120,7 +120,8 @@ footer { border-color: #19383b; background: rgb(4 19 21 / 55%); }
 }
 
 /* Precision threat-console finish */
-body { width: 400px; scrollbar-color: #31565a #041416; }
+html, body { width: 400px; min-width: 400px; }
+body { scrollbar-color: #31565a #041416; }
 .popup-shell::before {
     position: fixed; inset: 0; z-index: 0; opacity: .22; pointer-events: none;
     background: repeating-linear-gradient(to bottom, transparent 0, transparent 3px, rgb(0 0 0 / 12%) 4px);
@@ -168,5 +169,3 @@ kbd {
 .connection-status { padding-inline: 1.3rem; color: #91afb0; }
 footer { display: flex; justify-content: space-between; gap: .6rem; padding-inline: 1.3rem; color: #76999b; }
 footer b { color: #abc6c4; font-weight: 600; }
-
-@media (max-width: 400px) { body { width: 100vw; } }
