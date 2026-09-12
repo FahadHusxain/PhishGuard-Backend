@@ -7,6 +7,18 @@ function replaceText(id, value) {
     byId(id).textContent = String(value ?? "");
 }
 
+function setScanButton(text) {
+    const label = byId("scan-button").querySelector("span");
+    if (label) {
+        label.textContent = text;
+    }
+}
+
+function setScanStage(text, scanning = false) {
+    replaceText("scan-stage", text);
+    byId("scan-visual").classList.toggle("is-scanning", scanning);
+}
+
 function detail(label, value) {
     const wrapper = document.createElement("div");
     const term = document.createElement("dt");
@@ -84,19 +96,29 @@ async function submitScan(event) {
     const input = byId("target-url");
     const button = byId("scan-button");
     button.disabled = true;
-    button.textContent = "Analyzing…";
+    setScanButton("Analyzing…");
+    setScanStage("PARSING TARGET", true);
+    const stages = ["MAPPING SIGNALS", "CALCULATING RISK"];
+    let stageIndex = 0;
+    const stageTimer = window.setInterval(() => {
+        setScanStage(stages[Math.min(stageIndex, stages.length - 1)], true);
+        stageIndex += 1;
+    }, 260);
     byId("result").hidden = true;
     try {
         const backendUrl = await loadBackendUrl();
         const payload = await analyzeUrl({backendUrl, targetUrl: input.value});
         renderResult(payload);
+        setScanStage("VERDICT READY");
         setConnection(`Connected securely to ${backendUrl}`);
     } catch (error) {
         const retry = error.retryAfter ? ` Try again in ${error.retryAfter} seconds.` : "";
+        setScanStage("ANALYSIS INTERRUPTED");
         setConnection(`${error.message}${retry}`, true);
     } finally {
+        window.clearInterval(stageTimer);
         button.disabled = false;
-        button.textContent = "Analyze URL";
+        setScanButton("Analyze URL");
     }
 }
 

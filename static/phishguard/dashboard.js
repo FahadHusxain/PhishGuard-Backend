@@ -19,6 +19,57 @@ function setText(id, value) {
     }
 }
 
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function animateNumber(id, target) {
+    const element = byId(id);
+    const end = Number(target) || 0;
+    if (!element || reducedMotion) {
+        setText(id, end);
+        return;
+    }
+    const start = Number(element.textContent.replaceAll(",", "")) || 0;
+    if (start === end) {
+        element.textContent = end.toLocaleString();
+        return;
+    }
+    const started = performance.now();
+    const duration = 520;
+    function frame(now) {
+        const progress = Math.min((now - started) / duration, 1);
+        const eased = 1 - ((1 - progress) ** 3);
+        element.textContent = Math.round(start + ((end - start) * eased)).toLocaleString();
+        if (progress < 1) {
+            window.requestAnimationFrame(frame);
+        }
+    }
+    window.requestAnimationFrame(frame);
+}
+
+function updateClock() {
+    const clock = byId("rail-clock");
+    if (clock) {
+        clock.textContent = new Date().toLocaleTimeString([], {hour12: false});
+    }
+}
+
+function setAnalysisStage(stage) {
+    const order = ["parse", "structure", "classify", "complete"];
+    const activeIndex = order.indexOf(stage);
+    document.querySelectorAll("#analysis-sequence [data-stage]").forEach((item) => {
+        const index = order.indexOf(item.dataset.stage);
+        item.classList.toggle("active", index === activeIndex);
+        item.classList.toggle("complete", activeIndex >= 0 && index < activeIndex);
+    });
+}
+
+function setScanButton(text) {
+    const label = byId("scan-button")?.querySelector("span");
+    if (label) {
+        label.textContent = text;
+    }
+}
+
 async function requestJson(url, options = {}) {
     const response = await fetch(url, {
         credentials: "same-origin",
@@ -106,10 +157,10 @@ async function refreshStats() {
     const started = performance.now();
     try {
         const data = await requestJson(`${API_ROOT}/stats/`);
-        setText("total-scans", data.total_scans);
-        setText("phishing-count", data.phishing_count);
-        setText("safe-count", data.safe_count);
-        setText("unknown-count", data.unknown_count);
+        animateNumber("total-scans", data.total_scans);
+        animateNumber("phishing-count", data.phishing_count);
+        animateNumber("safe-count", data.safe_count);
+        animateNumber("unknown-count", data.unknown_count);
         setText("whitelist-count", `${data.whitelist_count.toLocaleString()} domains`);
         updateProgress("safe", percentage(data.safe_count, data.total_scans));
         updateProgress("phishing", percentage(data.phishing_count, data.total_scans));
@@ -152,7 +203,16 @@ async function submitScan(event) {
     }
 
     button.disabled = true;
-    button.textContent = "Analyzing…";
+    setScanButton("Analyzing…");
+    const consolePanel = document.querySelector(".scan-console");
+    consolePanel?.classList.add("is-scanning");
+    setAnalysisStage("parse");
+    const stages = ["structure", "classify"];
+    let stageIndex = 0;
+    const stageTimer = window.setInterval(() => {
+        setAnalysisStage(stages[Math.min(stageIndex, stages.length - 1)]);
+        stageIndex += 1;
+    }, 280);
     renderScanResult(result, "unknown", "Analyzing URL", "Evaluating structural signals.");
     try {
         const data = await requestJson(`${API_ROOT}/predict/`, {
@@ -172,13 +232,17 @@ async function submitScan(event) {
             ...(presentations[status] || presentations.UNKNOWN),
             data.domain_context || "",
         );
+        setAnalysisStage("complete");
         await refreshStats();
     } catch (error) {
         const retry = error.retryAfter ? ` Try again in ${error.retryAfter} seconds.` : "";
+        setAnalysisStage("");
         renderScanResult(result, "error", "Unable to analyze URL", `${error.message}${retry}`);
     } finally {
+        window.clearInterval(stageTimer);
+        consolePanel?.classList.remove("is-scanning");
         button.disabled = false;
-        button.textContent = "Analyze URL";
+        setScanButton("Run analysis");
     }
 }
 
@@ -238,3 +302,5 @@ if (searchForm) {
 
 refreshStats();
 window.setInterval(refreshStats, 15000);
+updateClock();
+window.setInterval(updateClock, 1000);

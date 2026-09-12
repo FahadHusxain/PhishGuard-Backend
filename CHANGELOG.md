@@ -47,6 +47,9 @@ approved for merge.
 
 ### Changed
 
+- Dashboard and extension presentation now use an original cinematic security
+  operations visual system with responsive HUD details, animated analysis
+  states, live counters, and reduced-motion fallbacks.
 - Rules-only results without sufficient evidence now return `UNKNOWN` instead
   of making an unsupported claim that an arbitrary URL is safe.
 - Trusted-domain imports can explicitly refresh stale existing ranks while the

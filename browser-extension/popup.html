@@ -9,6 +9,7 @@
 </head>
 <body>
     <main class="popup-shell">
+        <div class="hud-grid" aria-hidden="true"></div>
         <header class="brand-row">
             <img src="icons/icon-48.png" width="40" height="40" alt="">
             <div>
@@ -17,6 +18,7 @@
             </div>
             <button id="settings-button" class="icon-button" type="button" aria-label="Open backend settings" title="Backend settings">⚙</button>
         </header>
+        <div class="system-strip" aria-hidden="true"><span><i></i>NODE ONLINE</span><b>PASSIVE URL INSPECTION</b><em>PG-MV3</em></div>
 
         <section class="scanner" aria-labelledby="scanner-title">
             <p class="eyebrow">Current investigation</p>
@@ -25,8 +27,13 @@
                 <label for="target-url">Page or link</label>
                 <textarea id="target-url" name="url" rows="3" maxlength="500" spellcheck="false" required aria-describedby="url-help"></textarea>
                 <p id="url-help" class="help">The page is not opened or downloaded by the extension.</p>
-                <button id="scan-button" class="primary-button" type="submit">Analyze URL</button>
+                <button id="scan-button" class="primary-button" type="submit"><span>Analyze URL</span><i aria-hidden="true">→</i></button>
             </form>
+            <div id="scan-visual" class="scan-visual" aria-hidden="true">
+                <div class="scan-track"><i></i></div>
+                <span id="scan-stage">AWAITING TARGET</span>
+                <b>STRUCTURE / CONTEXT / RISK</b>
+            </div>
         </section>
 
         <section id="result" class="result" role="status" aria-live="polite" hidden>

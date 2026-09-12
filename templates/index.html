@@ -12,12 +12,14 @@
 </head>
 <body data-page="dashboard">
     <a class="skip-link" href="#main-content">Skip to main content</a>
+    <div class="cyber-atmosphere" aria-hidden="true"><i></i><i></i><i></i></div>
     <div class="app-shell">
         <aside class="side-rail">
             <a class="brand" href="/" aria-label="PhishGuard home">
                 <span class="brand-shield" aria-hidden="true"><span>PG</span></span>
                 <span class="brand-copy"><strong>PHISHGUARD</strong><small>Threat console</small></span>
             </a>
+            <div class="rail-classification"><span>PG-01</span><span>LOCAL DEFENSE NODE</span></div>
             <nav aria-label="Primary navigation">
                 <a class="active" href="#scanner"><span>01</span> Analyze</a>
                 <a href="#intelligence"><span>02</span> Intelligence</a>
@@ -27,16 +29,26 @@
                 <a href="/api/docs/">API documentation <span aria-hidden="true">↗</span></a>
                 <a href="/admin/">Administration <span aria-hidden="true">↗</span></a>
             </div>
-            <div class="system-state"><i aria-hidden="true"></i><span>Engine online</span></div>
+            <div class="system-state"><i aria-hidden="true"></i><span>Engine online</span><b id="rail-clock">--:--:--</b></div>
         </aside>
 
         <main id="main-content" class="workspace">
             <header class="console-header">
                 <div><p class="kicker">URL threat intelligence</p><h1>Link analysis console</h1></div>
-                <div class="privacy-badge"><span aria-hidden="true">◎</span> No remote page visit</div>
+                <div class="header-status">
+                    <span class="threat-level"><i aria-hidden="true"></i> Defensive mode</span>
+                    <div class="privacy-badge"><span aria-hidden="true">◎</span> No remote page visit</div>
+                </div>
             </header>
 
+            <div class="intel-ticker" aria-label="System capabilities">
+                <span class="ticker-label">SYSTEM FEED</span>
+                <div><span>URL STRUCTURE</span><i></i><span>DOMAIN CONTEXT</span><i></i><span>EXPLAINABLE SIGNALS</span><i></i><span>PRIVACY REDACTION ACTIVE</span></div>
+            </div>
+
             <section id="scanner" class="scan-console" aria-labelledby="scanner-title">
+                <div class="scan-grid" aria-hidden="true"></div>
+                <div class="scan-beam" aria-hidden="true"></div>
                 <div class="scan-heading">
                     <span class="command-prompt" aria-hidden="true">&gt;_</span>
                     <div><p class="kicker">New investigation</p><h2 id="scanner-title">Inspect a suspicious address</h2></div>
@@ -50,6 +62,12 @@
                     </div>
                     <p class="field-help">Accepts any complete HTTP(S) link. Paths, queries, and fragments are not retained.</p>
                 </form>
+                <div id="analysis-sequence" class="analysis-sequence" aria-hidden="true">
+                    <span data-stage="parse"><i></i>PARSE TARGET</span>
+                    <span data-stage="structure"><i></i>MAP SIGNALS</span>
+                    <span data-stage="classify"><i></i>CALCULATE RISK</span>
+                    <span data-stage="complete"><i></i>VERDICT READY</span>
+                </div>
                 <div id="scan-result" class="result" role="status" aria-live="polite" hidden></div>
                 <div class="analysis-note"><strong>How it works</strong><span>URL signals are evaluated without opening the destination. Domain-list membership is context, never proof that a page is safe.</span></div>
             </section>
@@ -57,10 +75,10 @@
             <section id="intelligence" class="intelligence-grid" aria-label="Aggregate scan intelligence">
                 <div class="section-label"><span>LIVE</span><h2>Intelligence snapshot</h2></div>
                 <div class="metrics">
-                    <article class="metric-card total"><span>Total analyzed</span><strong id="total-scans">0</strong><small>Recorded checks</small></article>
-                    <article class="metric-card danger"><span>Threats flagged</span><strong id="phishing-count">0</strong><small>High-risk verdicts</small></article>
-                    <article class="metric-card safe"><span>Clear signals</span><strong id="safe-count">0</strong><small>Safe verdicts</small></article>
-                    <article class="metric-card unknown"><span>Needs caution</span><strong id="unknown-count">0</strong><small>Inconclusive verdicts</small></article>
+                    <article class="metric-card total"><i aria-hidden="true">Σ</i><span>Total analyzed</span><strong id="total-scans">0</strong><small>Recorded checks</small></article>
+                    <article class="metric-card danger"><i aria-hidden="true">!</i><span>Threats flagged</span><strong id="phishing-count">0</strong><small>High-risk verdicts</small></article>
+                    <article class="metric-card safe"><i aria-hidden="true">✓</i><span>Clear signals</span><strong id="safe-count">0</strong><small>Safe verdicts</small></article>
+                    <article class="metric-card unknown"><i aria-hidden="true">?</i><span>Needs caution</span><strong id="unknown-count">0</strong><small>Inconclusive verdicts</small></article>
                 </div>
             </section>
 
