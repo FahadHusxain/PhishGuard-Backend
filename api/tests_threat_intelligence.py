@@ -3,6 +3,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -69,6 +70,37 @@ class ThreatIntelligenceTests(TestCase):
     def test_feature_can_be_disabled_without_deleting_indicators(self):
         self.assertIsNone(find_active_threat(self.url))
         self.assertEqual(ThreatIndicator.objects.count(), 1)
+
+    def test_public_health_reports_only_aggregate_freshness(self):
+        response = self.client.get(reverse("health_intelligence"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {"status": "fresh", "sources": 1, "active_indicators": 1},
+        )
+        self.assertNotContains(response, self.url)
+
+    def test_stale_health_is_separate_from_core_readiness(self):
+        ThreatFeedSnapshot.objects.update(
+            retrieved_at=timezone.now() - timedelta(hours=37)
+        )
+        response = self.client.get(reverse("health_intelligence"))
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["status"], "stale")
+        self.assertEqual(self.client.get(reverse("health_ready")).status_code, 200)
+
+    @override_settings(PHISHGUARD_THREAT_INTELLIGENCE_ENABLED=False)
+    def test_disabled_health_is_healthy_and_explicit(self):
+        response = self.client.get(reverse("health_intelligence"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "disabled")
+
+    def test_check_command_fails_for_stale_feed(self):
+        ThreatFeedSnapshot.objects.update(
+            retrieved_at=timezone.now() - timedelta(hours=37)
+        )
+        with self.assertRaisesMessage(CommandError, "is stale"):
+            call_command("check_threat_feed")
 
 
 class SyncThreatFeedCommandTests(TestCase):

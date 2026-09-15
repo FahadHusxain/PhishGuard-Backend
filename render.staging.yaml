@@ -1,0 +1,85 @@
+# Connect this Blueprint to chore/modernization-foundation only after reviewing
+# docs/render-staging.md. Resource creation can incur Render charges.
+services:
+  - type: web
+    name: phishguard-staging-web
+    runtime: docker
+    branch: chore/modernization-foundation
+    plan: 0.5c-512mb
+    autoDeployTrigger: "off"
+    healthCheckPath: /health/ready/
+    preDeployCommand: python manage.py migrate --noinput
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: phishguard-staging-db
+          property: connectionString
+      - key: CACHE_URL
+        fromService:
+          type: keyvalue
+          name: phishguard-staging-cache
+          property: connectionString
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "false"
+      - key: DJANGO_ALLOWED_HOSTS
+        sync: false
+      - key: DJANGO_CORS_ALLOW_ALL_ORIGINS
+        value: "false"
+      - key: DJANGO_CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: DJANGO_CSRF_TRUSTED_ORIGINS
+        sync: false
+      - key: DJANGO_SECURE_SSL_REDIRECT
+        value: "true"
+      - key: DJANGO_SESSION_COOKIE_SECURE
+        value: "true"
+      - key: DJANGO_CSRF_COOKIE_SECURE
+        value: "true"
+      - key: DJANGO_SECURE_HSTS_SECONDS
+        value: "3600"
+      - key: PHISHGUARD_NUM_PROXIES
+        value: "0"
+      - key: PHISHGUARD_ML_SHADOW_ENABLED
+        value: "false"
+      - key: PHISHGUARD_THREAT_INTELLIGENCE_ENABLED
+        value: "true"
+      - key: PHISHGUARD_THREAT_FEED_MAX_AGE_HOURS
+        value: "36"
+
+  - type: cron
+    name: phishguard-staging-feed-sync
+    runtime: docker
+    branch: chore/modernization-foundation
+    plan: 0.5c-512mb
+    autoDeployTrigger: "off"
+    schedule: "17 */12 * * *"
+    dockerCommand: python manage.py sync_threat_feed --source openphish-community --accept-openphish-terms
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: phishguard-staging-db
+          property: connectionString
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "false"
+      - key: DJANGO_ALLOWED_HOSTS
+        value: localhost
+      - key: CACHE_URL
+        fromService:
+          type: keyvalue
+          name: phishguard-staging-cache
+          property: connectionString
+
+  - type: keyvalue
+    name: phishguard-staging-cache
+    plan: free
+    ipAllowList: []
+    maxmemoryPolicy: allkeys-lru
+
+databases:
+  - name: phishguard-staging-db
+    plan: free
+    ipAllowList: []

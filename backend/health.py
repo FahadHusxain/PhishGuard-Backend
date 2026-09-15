@@ -8,6 +8,8 @@ from django.db import DatabaseError, connections
 from django.http import JsonResponse
 from redis.exceptions import RedisError
 
+from api.threat_intelligence import threat_feed_health
+
 
 def _database_is_ready() -> bool:
     try:
@@ -46,3 +48,17 @@ def readiness(_request):
     if _database_is_ready() and _cache_is_ready():
         return _probe_response({"status": "ready"})
     return _probe_response({"status": "unavailable"}, status=503)
+
+
+def intelligence_readiness(_request):
+    """Report optional feed freshness without taking the web service offline."""
+    health = threat_feed_health()
+    status_code = 200 if health.status in {"fresh", "disabled"} else 503
+    return _probe_response(
+        {
+            "status": health.status,
+            "sources": health.source_count,
+            "active_indicators": health.active_indicator_count,
+        },
+        status=status_code,
+    )

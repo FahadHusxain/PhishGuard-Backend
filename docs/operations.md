@@ -90,6 +90,18 @@ Set `PHISHGUARD_NUM_PROXIES` to the exact number of trusted proxies in front of
 Django. Keep the Compose value at zero because clients connect directly during
 local testing.
 
+The opt-in Render configuration and its cost, branch-isolation, secret, and
+verification requirements are documented in
+[Render staging deployment](render-staging.md). Validate it before review with:
+
+```bash
+python scripts/check_render_blueprint.py
+```
+
+Monitor `/health/intelligence/` separately from `/health/ready/`. A stale
+optional feed must alert the operator but must not make structural URL analysis
+unavailable.
+
 ## Candidate shadow evaluation
 
 Leave `PHISHGUARD_ML_SHADOW_ENABLED=false` during normal use. After the frozen

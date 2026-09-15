@@ -9,6 +9,7 @@ application, and Chromium browser extension for URL analysis.
 - [Security threat model](docs/threat-model.md)
 - [Testing and examiner demonstration guide](docs/testing.md)
 - [Threat intelligence operations](docs/threat-intelligence.md)
+- [Render staging deployment](docs/render-staging.md)
 - [Deployment and recovery runbook](docs/operations.md)
 - [Local Compose rehearsal evidence](docs/compose-rehearsal.md)
 - [Release-readiness audit](docs/release-audit.md)

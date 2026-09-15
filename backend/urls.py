@@ -7,7 +7,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 from api.urls import urlpatterns as api_urlpatterns
 
-from .health import liveness, readiness
+from .health import intelligence_readiness, liveness, readiness
 
 
 def home(request):
@@ -18,6 +18,11 @@ urlpatterns = [
     path("", home, name="home"),
     path("health/live/", liveness, name="health_live"),
     path("health/ready/", readiness, name="health_ready"),
+    path(
+        "health/intelligence/",
+        intelligence_readiness,
+        name="health_intelligence",
+    ),
     path("admin/", admin.site.urls),
     path(
         "api/schema/",

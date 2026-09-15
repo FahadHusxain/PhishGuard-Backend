@@ -70,6 +70,12 @@ grant are documented separately in `THIRD_PARTY_NOTICES.md`.
 - document a database-compatible rollback and previous image;
 - verify the exact candidate through its real HTTPS endpoint.
 
+An opt-in `render.staging.yaml` now describes an isolated manual-deploy staging
+web service, database, cache, and 12-hour feed-sync cron job. Repository checks
+enforce its feature-branch and staging-name boundaries. This is deployment
+preparation only; no Render resources have been created and the hosting-only
+evidence above remains open.
+
 These items cannot be truthfully marked complete against a localhost stack.
 Use the [release checklist](release-checklist.md) as the final gate and do not
 merge into `main` while any required item remains open.

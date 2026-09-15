@@ -17,6 +17,7 @@ python -m pip_audit --local --strict
 python scripts/check_docs.py
 python scripts/check_repository.py
 python scripts/check_reference_data.py
+python scripts/check_render_blueprint.py
 python scripts/check_extension.py
 ```
 

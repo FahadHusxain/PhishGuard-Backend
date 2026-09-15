@@ -22,6 +22,13 @@ class ThreatMatch:
     retrieved_at: object
 
 
+@dataclass(frozen=True)
+class ThreatFeedHealth:
+    status: str
+    source_count: int
+    active_indicator_count: int
+
+
 def canonicalize_indicator_url(url: str) -> str:
     """Produce the stable exact-match form used by ingestion and prediction."""
     parsed = urlsplit(url.strip())
@@ -78,3 +85,29 @@ def find_active_threat(url: str) -> ThreatMatch | None:
         logger.exception("Threat-intelligence lookup failed")
         return None
     return ThreatMatch(source=indicator.source, retrieved_at=snapshot.retrieved_at)
+
+
+def threat_feed_health() -> ThreatFeedHealth:
+    """Summarize feed readiness without exposing indicators or timestamps."""
+    if not settings.PHISHGUARD_THREAT_INTELLIGENCE_ENABLED:
+        return ThreatFeedHealth("disabled", 0, 0)
+    cutoff = timezone.now() - timedelta(
+        hours=settings.PHISHGUARD_THREAT_FEED_MAX_AGE_HOURS
+    )
+    try:
+        fresh_sources = ThreatFeedSnapshot.objects.filter(
+            retrieved_at__gte=cutoff
+        ).values_list("source", flat=True)
+        source_count = len(fresh_sources)
+        if source_count == 0:
+            return ThreatFeedHealth("stale", 0, 0)
+        indicator_count = ThreatIndicator.objects.filter(
+            source__in=fresh_sources,
+            active=True,
+        ).count()
+    except DatabaseError:
+        logger.exception("Threat-intelligence health lookup failed")
+        return ThreatFeedHealth("unavailable", 0, 0)
+    if indicator_count == 0:
+        return ThreatFeedHealth("stale", source_count, 0)
+    return ThreatFeedHealth("fresh", source_count, indicator_count)

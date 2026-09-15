@@ -11,6 +11,8 @@ approved for merge.
 - Privacy-reduced exact-URL threat-intelligence storage and lookup.
 - Fail-safe OpenPhish Community and local PhishTank feed synchronization with
   freshness enforcement and full-snapshot replacement semantics.
+- A separate manual-deploy Render staging Blueprint, scheduled feed refresh,
+  aggregate feed-health endpoint, and Blueprint safety validation.
 - Versioned `/api/v1/` contract, OpenAPI schema, and self-hosted documentation.
 - Request correlation, structured production logging, liveness, and dependency
   readiness probes.

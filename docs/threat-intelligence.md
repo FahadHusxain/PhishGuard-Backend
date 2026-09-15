@@ -66,3 +66,15 @@ command outside the web process and alert on failed or stale updates.
 Disable matching with `PHISHGUARD_THREAT_INTELLIGENCE_ENABLED=false` without
 deleting evidence. Feed data is operational security data and must be included
 in database access, backup, retention, and incident-response policy.
+
+Check a running service without exposing feed timestamps or indicators:
+
+```bash
+curl --fail https://HOST/health/intelligence/
+python manage.py check_threat_feed
+```
+
+The health endpoint reports only status and aggregate counts. It returns 503
+when enabled intelligence is missing, stale, empty, or unavailable. Core
+`/health/ready/` remains independent so a feed incident does not take passive
+rules-only analysis offline.
