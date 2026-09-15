@@ -1,0 +1,18 @@
+{
+  "name": "PhiUSIIL Phishing URL (Website)",
+  "uci_id": 967,
+  "repository_url": "https://archive.ics.uci.edu/dataset/967/phiusiil+phishing+url+dataset",
+  "archive_url": "https://archive.ics.uci.edu/static/public/967/phiusiil+phishing+url+dataset.zip",
+  "archive_sha256": "0a639fd03aea6308c5b1c10c92aa23c2ce1505447a9137271865cd0badc9a59a",
+  "csv_member": "PhiUSIIL_Phishing_URL_Dataset.csv",
+  "instances_reported": 235795,
+  "license": "CC BY 4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/legalcode",
+  "paper_doi": "https://doi.org/10.1016/j.cose.2023.103545",
+  "url_column": "URL",
+  "label_column": "label",
+  "source_label_meaning": {
+    "0": "phishing",
+    "1": "legitimate"
+  }
+}

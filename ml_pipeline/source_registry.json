@@ -1,0 +1,95 @@
+{
+  "contract_version": 2,
+  "training_ready": true,
+  "promotion_ready": false,
+  "sources": {
+    "phiusiil": {
+      "label_scope": "benign and phishing",
+      "representation": "full_url",
+      "timestamp_available": false,
+      "license": "CC BY 4.0",
+      "training_rights_confirmed": true,
+      "approved_use": "legacy baseline and future seed corpus",
+      "manifest": "dataset_manifest.json"
+    },
+    "phishtank_snapshot_2026_09_10": {
+      "label_scope": "phishing only",
+      "representation": "full_url",
+      "timestamp_available": true,
+      "license": "not recorded",
+      "training_rights_confirmed": false,
+      "approved_use": "frozen evaluation only pending terms review",
+      "manifest": "external_evaluation_manifest.json"
+    },
+    "tranco_snapshot_2026_09_10": {
+      "label_scope": "benign proxy only",
+      "representation": "domain",
+      "timestamp_available": true,
+      "license": "not recorded",
+      "training_rights_confirmed": false,
+      "approved_use": "frozen evaluation only; not page-level ground truth",
+      "manifest": "external_evaluation_manifest.json"
+    },
+    "phreshphish_v1.0.1_train": {
+      "label_scope": "benign and phishing",
+      "representation": "full_url",
+      "timestamp_available": true,
+      "license": "CC BY 4.0",
+      "training_rights_confirmed": true,
+      "approved_use": "v2 candidate training; published test split excluded",
+      "manifest": "open_corpus_manifest.json"
+    },
+    "phishvn_v3.1.0_verified_train": {
+      "label_scope": "benign and phishing",
+      "representation": "origin",
+      "timestamp_available": "partial",
+      "license": "CC BY 4.0",
+      "training_rights_confirmed": true,
+      "approved_use": "v2 source-diversity training; gold/silver train rows only",
+      "manifest": "open_corpus_manifest.json"
+    }
+  },
+  "candidate_sources": {
+    "openphish_academic": {
+      "label_scope": "phishing only",
+      "representation": "full_url",
+      "timestamp_available": true,
+      "training_rights_confirmed": false,
+      "status": "requires academic-program approval and non-redistribution controls",
+      "terms_url": "https://www.openphish.com/academic_use.html"
+    },
+    "common_crawl": {
+      "label_scope": "unlabeled web observations",
+      "representation": "full_url",
+      "timestamp_available": true,
+      "training_rights_confirmed": false,
+      "status": "usable only after a defensible benign-labeling and rights review",
+      "terms_url": "https://commoncrawl.org/terms-of-use"
+    }
+  },
+  "candidate_evaluations": {
+    "v2_lexical": {
+      "status": "rejected_by_holdout_gate",
+      "model_sha256": "c4f10d32f8b6df65f32fb76de37d4b43278c5f94ef44ca8fdf80c079e4c6216c",
+      "thresholds_changed_after_holdout": false,
+      "report": "../ml_models/V2_HOLDOUT_EVALUATION.json"
+    },
+    "v3_structural": {
+      "status": "rejected_by_development_evidence",
+      "model_sha256": "25bf55bb8874378837ff85412ff6e0cee8f0754bfe643e7c0a52d171eabf66aa",
+      "opened_holdouts_used_for_training_or_selection": false,
+      "report": "../ml_models/V3_STRUCTURAL_DEVELOPMENT.json"
+    },
+    "v4_ensemble": {
+      "status": "development_selected_awaiting_future_holdout",
+      "model_sha256": "ecfad83fdb02552e264f609bc17992bdd95951901cd65919115a36400249cbc2",
+      "opened_holdouts_used_for_training_or_selection": false,
+      "report": "../ml_models/V4_ENSEMBLE_DEVELOPMENT.json"
+    }
+  },
+  "promotion_blockers": [
+    "Acquire and freeze a genuinely future temporal snapshot for unbiased v4 promotion evidence",
+    "Pre-register the v4 final evaluation policy before opening the new snapshot labels",
+    "Complete shadow-mode review before any production integration"
+  ]
+}

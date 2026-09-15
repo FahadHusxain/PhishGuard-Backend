@@ -1,0 +1,53 @@
+{
+  "policy_version": 1,
+  "candidate": "v4_lexical_structural_ensemble",
+  "purpose": "Freeze ensemble development and acceptance rules before producing v4 scores.",
+  "components": {
+    "v2_lexical": {
+      "artifact": "../ml_models/url_lexical_candidate_v2.npz",
+      "sha256": "c4f10d32f8b6df65f32fb76de37d4b43278c5f94ef44ca8fdf80c079e4c6216c",
+      "input": "uncalibrated lexical decision score"
+    },
+    "v3_structural": {
+      "artifact": "../ml_models/url_structural_candidate_v3.npz",
+      "sha256": "25bf55bb8874378837ff85412ff6e0cee8f0754bfe643e7c0a52d171eabf66aa",
+      "input": "uncalibrated structural decision score"
+    }
+  },
+  "corpus_sha256": "3225bde3e1c51eb0fca82bd1b03cc050c32b88f7dd721012505ff6e3d267249e",
+  "partition_contract": {
+    "base_models_fit_on": "fit",
+    "meta_model_and_thresholds_fit_on": "calibration",
+    "candidate_selection_on": "development",
+    "registrable_domain_isolation_required": true,
+    "historical_holdouts_must_not_be_loaded": true
+  },
+  "meta_model": {
+    "type": "logistic regression",
+    "features": [
+      "v2_lexical_raw_score",
+      "v3_structural_raw_score"
+    ],
+    "solver": "lbfgs",
+    "C": 1.0,
+    "max_iter": 100,
+    "tolerance": 0.0001,
+    "random_seed": 20260911
+  },
+  "decision_policy": {
+    "minimum_calibration_precision": 0.995,
+    "safe": "probability <= lower_threshold",
+    "unknown": "lower_threshold < probability < upper_threshold",
+    "phishing": "probability >= upper_threshold"
+  },
+  "development_acceptance_gate": {
+    "pr_auc_at_least": 0.985446,
+    "safe_precision_at_least": 0.99,
+    "phishing_precision_at_least": 0.99,
+    "decisive_coverage_at_least": 0.67,
+    "false_safe_rate_at_most": 0.01,
+    "false_phishing_rate_at_most": 0.005
+  },
+  "if_gate_fails": "Reject v4 without scoring either opened historical holdout.",
+  "if_gate_passes": "Retain as development-selected only; require a new future temporal holdout and shadow review before production promotion."
+}

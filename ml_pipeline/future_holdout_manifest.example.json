@@ -1,0 +1,23 @@
+{
+  "manifest_version": 1,
+  "snapshot_id": "replace-with-immutable-snapshot-id",
+  "candidate_sha256": "ecfad83fdb02552e264f609bc17992bdd95951901cd65919115a36400249cbc2",
+  "acquired_at": "REPLACE_WITH_TIMEZONE_AWARE_ISO_8601_TIME",
+  "files": [
+    {
+      "source_id": "replace-with-stable-lowercase-source-id",
+      "local_filename": "replace-with-local-csv-filename.csv",
+      "sha256": "REPLACE_WITH_64_CHARACTER_SHA256",
+      "byte_size": 0,
+      "source_url": "REPLACE_WITH_OFFICIAL_SOURCE_URL",
+      "terms_url": "REPLACE_WITH_OFFICIAL_TERMS_OR_LICENSE_URL",
+      "evaluation_rights_reviewed": false,
+      "label_method": "REPLACE_WITH_DEFENSIBLE_GROUND_TRUTH_METHOD",
+      "expected_columns": [
+        "url",
+        "label",
+        "observed_at"
+      ]
+    }
+  ]
+}

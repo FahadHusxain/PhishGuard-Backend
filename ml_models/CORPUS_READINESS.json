@@ -1,0 +1,51 @@
+{
+  "contract_version": 2,
+  "min_samples_per_label": 1000,
+  "input_rows": 311266,
+  "unique_urls": 307586,
+  "retained_urls": 307582,
+  "invalid_rows": 45,
+  "conflicting_urls": 4,
+  "cross_source_duplicate_urls": 2102,
+  "labels": {
+    "benign": 134846,
+    "phishing": 172736
+  },
+  "sources_per_label": {
+    "0": [
+      "phiusiil"
+    ],
+    "1": [
+      "phishtank-2026-09-10",
+      "phiusiil"
+    ]
+  },
+  "timestamp_coverage": {
+    "benign": 0.0,
+    "phishing": 0.434229112634309
+  },
+  "full_url_coverage": {
+    "benign": 1.0,
+    "phishing": 1.0
+  },
+  "licensed_coverage": {
+    "benign": 1.0,
+    "phishing": 0.565770887365691
+  },
+  "shared_label_groups": 156,
+  "training_ready": false,
+  "readiness_failures": [
+    "benign label requires at least two independent sources",
+    "benign label requires at least 80% timestamp coverage",
+    "phishing label requires at least 80% timestamp coverage",
+    "phishing label contains samples without confirmed training rights",
+    "registrable domains with conflicting labels require adjudication"
+  ],
+  "audited_sources": [
+    "phiusiil",
+    "phishtank-2026-09-10"
+  ],
+  "excluded_sources": {
+    "tranco-2026-09-10": "bare domains are not genuine benign full URLs"
+  }
+}

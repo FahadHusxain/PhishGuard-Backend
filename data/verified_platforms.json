@@ -1,0 +1,12 @@
+{
+  "format_version": 1,
+  "policy": "Exact HTTPS root pages only; paths, queries, fragments, nonstandard ports, and subdomains other than www are excluded.",
+  "reviewed_at": "2026-09-12",
+  "platforms": [
+    {"domain": "facebook.com", "official_url": "https://www.facebook.com/"},
+    {"domain": "github.com", "official_url": "https://github.com/"},
+    {"domain": "google.com", "official_url": "https://www.google.com/"},
+    {"domain": "linkedin.com", "official_url": "https://www.linkedin.com/"},
+    {"domain": "youtube.com", "official_url": "https://www.youtube.com/"}
+  ]
+}

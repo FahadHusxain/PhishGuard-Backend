@@ -1,99 +1,298 @@
-from django.shortcuts import render
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from .models import WhitelistDomain, ScanLog
-from .ml_logic import predict_url_security
+"""HTTP views for the PhishGuard API and dashboard."""
+
+import ipaddress
+import logging
 import socket
+
 import requests
+from django.conf import settings
+from django.db import DatabaseError, transaction
+from django.shortcuts import render
+from drf_spectacular.utils import extend_schema
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
+from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
 
-# --- HELPER: Safe IP Lookup ---
-def get_ip_location(url):
+from .dashboard import get_dashboard_aggregates
+from .domains import whitelist_candidates
+from .ml_logic import predict_url_security
+from .models import ScanLog, WhitelistAuditEvent, WhitelistDomain
+from .permissions import CanManageWhitelist, can_view_scan_activity
+from .serializers import (
+    DashboardStatsSerializer,
+    ErrorEnvelopeSerializer,
+    PredictionResponseSerializer,
+    ReportSafeResponseSerializer,
+    URLSubmissionSerializer,
+    WhitelistResultSerializer,
+    WhitelistSearchSerializer,
+    WhitelistSubmissionSerializer,
+    hostname_from_url,
+    redact_url_for_storage,
+)
+from .threat_intelligence import find_active_threat
+from .throttles import (
+    AdministrationRateThrottle,
+    AnalysisRateThrottle,
+    ReadRateThrottle,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def _public_ip_for_hostname(hostname: str) -> str | None:
+    """Resolve a hostname only when every returned address is globally routable."""
     try:
-        # Domain nikalo
-        domain = url.split('//')[-1].split('/')[0].split('?')[0]
-        ip_address = socket.gethostbyname(domain)
-        
-        # Render par kabhi kabhi ye timeout hota hai, isliye chota timeout rakho
+        records = socket.getaddrinfo(hostname, None, type=socket.SOCK_STREAM)
+    except OSError:
+        return None
+
+    addresses = {record[4][0] for record in records}
+    if not addresses:
+        return None
+
+    parsed_addresses = []
+    for address in addresses:
         try:
-            geo_url = f'http://ip-api.com/json/{ip_address}?fields=country'
-            response = requests.get(geo_url, timeout=1) # Sirf 1 second wait karo
-            data = response.json()
-            return ip_address, data.get('country', 'Unknown')
-        except:
-            return ip_address, "Unknown"
-    except:
-        return "0.0.0.0", "Unknown"
+            parsed_address = ipaddress.ip_address(address)
+        except ValueError:
+            return None
+        if not parsed_address.is_global:
+            return None
+        parsed_addresses.append(parsed_address)
 
-# --- API VIEWS ---
-def home(request):
-    return render(request, 'index.html')
+    return str(min(parsed_addresses, key=lambda item: (item.version, int(item))))
 
-@api_view(['POST'])
-def predict_url(request):
-    url = request.data.get('url', '')
-    if not url: return Response({'error': 'No URL'}, status=400)
-    
-    # 1. Whitelist Check
-    domain = url.split('//')[-1].split('/')[0]
-    whitelist_obj = WhitelistDomain.objects.filter(domain__icontains=domain).first()
-    
-    if whitelist_obj and whitelist_obj.rank > 0:
-        # Whitelist hone par bhi Log Save karna zaroori hai Dashboard ke liye
-        ScanLog.objects.create(url=url, status='SAFE', confidence=100, ip_address="Whitelisted", country="Safe Zone")
-        return Response({'status': 'SAFE', 'confidence': 100, 'country': 'Whitelisted'})
 
-    # 2. Logic Check
-    result = predict_url_security(url)
-    
-    # 3. Location & Logging (FAIL SAFE BLOCK)
+def get_ip_location(url: str) -> tuple[str | None, str]:
+    """Resolve optional geolocation without contacting user-controlled hosts."""
+    if not settings.PHISHGUARD_GEOLOCATION_ENABLED:
+        return None, "Unknown"
+
+    hostname = hostname_from_url(url)
+    ip_address = _public_ip_for_hostname(hostname)
+    if ip_address is None:
+        return None, "Unknown"
+
     try:
-        ip, country = get_ip_location(url)
-        ScanLog.objects.create(
-            url=url, 
-            status=result['status'], 
-            confidence=result['confidence'], 
-            ip_address=ip, 
-            country=country
+        response = requests.get(
+            f"https://ipapi.co/{ip_address}/country_name/",
+            headers={"User-Agent": "PhishGuard/1.0"},
+            timeout=settings.PHISHGUARD_GEOLOCATION_TIMEOUT_SECONDS,
         )
-    except Exception as e:
-        # Agar Database save fail ho, tab bhi User ko result dikhao, crash mat karo
-        print(f"Logging Error: {e}")
+        response.raise_for_status()
+        country = response.text.strip()
+        if not country or len(country) > 50:
+            country = "Unknown"
+    except requests.RequestException:
+        country = "Unknown"
 
-    return Response(result)
+    return ip_address, country
 
-# --- Baki APIs Same Rahengi ---
-@api_view(['POST'])
-def report_safe(request):
-    url = request.data.get('url', '')
-    if not url: return Response({'error': 'No URL'}, status=400)
+
+def _listed_domain(hostname: str) -> WhitelistDomain | None:
+    return (
+        WhitelistDomain.objects.filter(
+            domain__in=whitelist_candidates(hostname),
+            rank__gt=0,
+        )
+        .order_by("-rank")
+        .first()
+    )
+
+
+@extend_schema(
+    operation_id="analyze_url",
+    summary="Analyze a URL for phishing risk",
+    request=URLSubmissionSerializer,
+    responses={
+        200: PredictionResponseSerializer,
+        400: ErrorEnvelopeSerializer,
+        413: ErrorEnvelopeSerializer,
+        415: ErrorEnvelopeSerializer,
+        429: ErrorEnvelopeSerializer,
+    },
+    tags=["Analysis"],
+)
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@throttle_classes([AnalysisRateThrottle])
+def predict_url(request):
+    serializer = URLSubmissionSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    url = serializer.validated_data["url"]
+    hostname = hostname_from_url(url)
+    stored_url = redact_url_for_storage(url)
+
+    listed_domain = _listed_domain(hostname)
+    result = predict_url_security(url)
+    threat_match = find_active_threat(url)
+    if threat_match is not None:
+        existing_signals = list(result.get("signals", []))
+        feed_signal = "Exact URL matches current reviewed phishing intelligence"
+        result.update(
+            {
+                "status": "PHISHING",
+                "confidence": 100.0,
+                "confidence_basis": "threat-intelligence",
+                "risk_score": 100.0,
+                "message": feed_signal,
+                "engine": "threat-intelligence-rules",
+                "signals": [feed_signal, *existing_signals],
+            }
+        )
+    result["domain_listed"] = listed_domain is not None
+    if result["status"] == "SAFE" and result.get("engine") == "verified-domain-rules":
+        result["domain_context"] = (
+            "Exact root matches the reviewed official-platform registry; linked "
+            "pages and content are outside this verdict."
+        )
+    elif listed_domain is not None:
+        result["domain_context"] = (
+            "Domain matches the popularity reference. Membership does not verify "
+            "this page."
+        )
+    else:
+        result["domain_context"] = (
+            "No popularity-reference match. Absence does not imply phishing."
+        )
+    ip_address, country = get_ip_location(url)
+
     try:
-        domain = url.split('//')[-1].split('/')[0]
-        WhitelistDomain.objects.get_or_create(domain=domain, defaults={'rank': 50})
-        return Response({'status': 'Whitelisted'})
-    except Exception as e:
-        return Response({'error': str(e)}, status=500)
+        ScanLog.objects.create(
+            origin=stored_url,
+            status=result["status"],
+            confidence=result["confidence"],
+            ip_address=ip_address,
+            country=country,
+        )
+    except DatabaseError:
+        logger.exception("Unable to store a URL scan result")
 
-@api_view(['GET'])
+    return Response({**result, "country": country})
+
+
+@extend_schema(
+    operation_id="add_trusted_domain",
+    summary="Add a domain to the reviewed reference list",
+    request=WhitelistSubmissionSerializer,
+    responses={
+        200: ReportSafeResponseSerializer,
+        201: ReportSafeResponseSerializer,
+        400: ErrorEnvelopeSerializer,
+        403: ErrorEnvelopeSerializer,
+        413: ErrorEnvelopeSerializer,
+        415: ErrorEnvelopeSerializer,
+        429: ErrorEnvelopeSerializer,
+    },
+    tags=["Administration"],
+)
+@api_view(["POST"])
+@permission_classes([CanManageWhitelist])
+@throttle_classes([AdministrationRateThrottle])
+@transaction.atomic
+def report_safe(request):
+    serializer = WhitelistSubmissionSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    hostname = hostname_from_url(serializer.validated_data["url"])
+    whitelist_entry, created = (
+        WhitelistDomain.objects.select_for_update().get_or_create(
+            domain=hostname,
+            defaults={"rank": 50},
+        )
+    )
+
+    action = WhitelistAuditEvent.Action.ADDED if created else None
+    previous_rank = None if created else whitelist_entry.rank
+    if not created and previous_rank <= 0:
+        whitelist_entry.rank = 50
+        whitelist_entry.save(update_fields=["rank"])
+        action = WhitelistAuditEvent.Action.PROMOTED
+
+    if action is not None:
+        WhitelistAuditEvent.objects.create(
+            domain=hostname,
+            action=action,
+            actor=request.user,
+            actor_username=request.user.get_username(),
+            previous_rank=previous_rank,
+            new_rank=whitelist_entry.rank,
+            reason=serializer.validated_data["reason"],
+            request_id=request.request_id,
+        )
+
+    response_status = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+    return Response(
+        {"status": "Whitelisted", "domain": hostname},
+        status=response_status,
+    )
+
+
+@extend_schema(
+    operation_id="dashboard_statistics",
+    summary="Get aggregate scan statistics",
+    responses={200: DashboardStatsSerializer, 429: ErrorEnvelopeSerializer},
+    tags=["Statistics"],
+)
+@api_view(["GET"])
+@permission_classes([AllowAny])
+@throttle_classes([ReadRateThrottle])
 def dashboard_stats(request):
-    total_scans = ScanLog.objects.count()
-    phishing_count = ScanLog.objects.filter(status='PHISHING').count()
-    whitelist_count = WhitelistDomain.objects.count()
-    recent_logs = ScanLog.objects.order_by('-timestamp')[:10].values('url', 'status', 'confidence', 'timestamp', 'country')
-    return Response({'total_scans': total_scans, 'phishing_count': phishing_count, 'whitelist_count': whitelist_count, 'recent_logs': list(recent_logs), 'graph_data': []})
+    aggregates = get_dashboard_aggregates()
+    recent_logs_visible = can_view_scan_activity(request.user)
+    recent_scan_rows = ScanLog.objects.all()[:10] if recent_logs_visible else []
+    recent_logs = []
+    for scan in recent_scan_rows:
+        try:
+            domain = hostname_from_url(scan.origin)
+        except (ValueError, ValidationError):
+            domain = "invalid-domain"
+        recent_logs.append(
+            {
+                "domain": domain,
+                "status": scan.status,
+                "confidence": scan.confidence,
+                "timestamp": scan.timestamp,
+                "country": scan.country,
+            }
+        )
 
-@api_view(['GET'])
+    return Response(
+        {
+            **aggregates,
+            "recent_logs_visible": recent_logs_visible,
+            "recent_logs": recent_logs,
+            "graph_data": [],
+        }
+    )
+
+
+@extend_schema(
+    operation_id="search_listed_domains",
+    summary="Search the domain reference list",
+    parameters=[WhitelistSearchSerializer],
+    responses={
+        200: WhitelistResultSerializer(many=True),
+        400: ErrorEnvelopeSerializer,
+        429: ErrorEnvelopeSerializer,
+    },
+    tags=["Domain reference"],
+)
+@api_view(["GET"])
+@permission_classes([AllowAny])
+@throttle_classes([ReadRateThrottle])
 def search_whitelist(request):
-    query = request.GET.get('q', '')
-    if query:
-        results = WhitelistDomain.objects.filter(domain__icontains=query)[:20].values('domain', 'rank')
-        return Response(list(results))
-    return Response([])
+    serializer = WhitelistSearchSerializer(data=request.query_params)
+    serializer.is_valid(raise_exception=True)
+    query = serializer.validated_data["q"]
+    results = WhitelistDomain.objects.filter(
+        domain__startswith=query,
+        rank__gt=0,
+    ).order_by("rank", "domain")[:20]
+    return Response([{"domain": entry.domain, "rank": entry.rank} for entry in results])
 
-@api_view(['GET'])
-def fix_everything(request):
-    return Response({"status": "Admin Fix Tool is Active"})
 
 def analytics_view(request):
-    return render(request, 'stats.html')
-    from django.contrib.auth.models import User
-from django.http import HttpResponse
+    return render(request, "stats.html")

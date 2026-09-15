@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+!.env.compose.example
+
+# Django
+db.sqlite3
+db.sqlite3-journal
+staticfiles/
+media/
+backups/
+ml_models/tokenizer.pickle
+
+# Test, coverage, and type-checking caches
+.ml-data/
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pre-commit-cache/
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,21 +1,42 @@
-"""
-URL configuration for backend project.
-"""
-from django.contrib import admin
-from django.urls import path, include
-from api.views import home  # <--- 1. YE LINE ADD HUWI HAI
-from django.shortcuts import render
-# ... baaki imports ...
+"""Root URL configuration for PhishGuard."""
 
-# ... baaki functions ...
+from django.contrib import admin
+from django.shortcuts import render
+from django.urls import include, path
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+
+from api.urls import urlpatterns as api_urlpatterns
+
+from .health import intelligence_readiness, liveness, readiness
+
 
 def home(request):
-    return render(request, 'index.html')
+    return render(request, "index.html")
+
 
 urlpatterns = [
-    # 2. YE LINE ADD HUWI HAI (Homepage ke liye)
-    path('', home, name='home'),
-    
-    path('admin/', admin.site.urls),
-    path('api/', include('api.urls')),
+    path("", home, name="home"),
+    path("health/live/", liveness, name="health_live"),
+    path("health/ready/", readiness, name="health_ready"),
+    path(
+        "health/intelligence/",
+        intelligence_readiness,
+        name="health_intelligence",
+    ),
+    path("admin/", admin.site.urls),
+    path(
+        "api/schema/",
+        SpectacularAPIView.as_view(urlconf="backend.api_v1_urls"),
+        name="api_schema",
+    ),
+    path(
+        "api/docs/",
+        SpectacularSwaggerView.as_view(url_name="api_schema"),
+        name="api_docs",
+    ),
+    path(
+        "api/v1/",
+        include((api_urlpatterns, "api"), namespace="api-v1"),
+    ),
+    path("api/", include("api.urls")),
 ]

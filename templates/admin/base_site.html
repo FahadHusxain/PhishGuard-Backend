@@ -1,0 +1,23 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:"PhishGuard Command" }}{% endblock %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'phishguard/admin.css' %}">{% endblock %}
+
+{% block branding %}
+<div id="site-name">
+    <a href="{% url 'admin:index' %}" aria-label="PhishGuard administration home">
+        <span class="pg-admin-mark" aria-hidden="true">PG</span>
+        <span><strong>PHISHGUARD</strong><small>SECURE COMMAND</small></span>
+    </a>
+    <a class="pg-login-return" href="/">Threat console</a>
+</div>
+{% endblock %}
+
+{% block nav-global %}
+<nav class="pg-admin-links" aria-label="Product navigation">
+    <a href="/">Threat console</a>
+    <a href="/api/docs/">API intelligence</a>
+</nav>
+{% endblock %}

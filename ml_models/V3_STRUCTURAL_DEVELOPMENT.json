@@ -1,0 +1,168 @@
+{
+  "pipeline_version": 3,
+  "candidate_status": "REJECTED_BY_DEVELOPMENT_EVIDENCE",
+  "candidate_reason": "The candidate missed the existing 99.5% precision floor on the development partition and underperformed the v2 lexical baseline.",
+  "opened_holdouts_used_for_training_or_selection": false,
+  "model_sha256": "25bf55bb8874378837ff85412ff6e0cee8f0754bfe643e7c0a52d171eabf66aa",
+  "artifact_format": "deterministic NumPy NPZ; pickle disabled",
+  "corpus": {
+    "unique_urls": 462644,
+    "duplicate_rows_removed": 207,
+    "corpus_sha256": "3225bde3e1c51eb0fca82bd1b03cc050c32b88f7dd721012505ff6e3d267249e",
+    "quarantine": {
+      "invalid_rows": 4446,
+      "quarantined_groups": 340,
+      "quarantined_rows": 44038,
+      "retained_rows": 462851
+    }
+  },
+  "random_seed": 20260911,
+  "training_environment": {
+    "python": "3.13.15",
+    "numpy": "2.5.3",
+    "scikit_learn": "1.9.1"
+  },
+  "features": {
+    "type": "explicit URL structure; HTTPS scheme intentionally excluded",
+    "count": 27,
+    "names": [
+      "url_length",
+      "host_length",
+      "path_length",
+      "query_length",
+      "host_dots",
+      "subdomain_depth",
+      "tld_length",
+      "hyphens",
+      "host_hyphens",
+      "digits",
+      "host_digits",
+      "slashes",
+      "percent_signs",
+      "equals_signs",
+      "ampersands",
+      "at_signs",
+      "underscores",
+      "path_depth",
+      "query_parameters",
+      "digit_ratio",
+      "special_ratio",
+      "longest_token",
+      "character_entropy",
+      "lure_term_count",
+      "ip_host",
+      "punycode_host",
+      "explicit_port"
+    ]
+  },
+  "model": {
+    "type": "histogram gradient boosting",
+    "iterations": 150,
+    "max_leaf_nodes": 15,
+    "max_depth": null
+  },
+  "decision_policy": {
+    "minimum_calibration_precision": 0.995,
+    "lower_threshold": 0.020806891383449145,
+    "upper_threshold": 0.9762181978100175
+  },
+  "splits": {
+    "fit": {
+      "rows": 323849,
+      "groups": 139891,
+      "benign": 186184,
+      "phishing": 137665
+    },
+    "calibration": {
+      "rows": 69398,
+      "groups": 29933,
+      "benign": 39897,
+      "phishing": 29501
+    },
+    "development": {
+      "rows": 69397,
+      "groups": 29973,
+      "benign": 39897,
+      "phishing": 29500
+    }
+  },
+  "calibration_metrics": {
+    "roc_auc": 0.977065,
+    "pr_auc": 0.971763,
+    "brier_score": 0.058238,
+    "log_loss": 0.191139,
+    "lower_threshold": 0.02080689,
+    "upper_threshold": 0.9762182,
+    "decisive_coverage": 0.575723,
+    "unknown_rate": 0.424277,
+    "safe_precision": 0.995006,
+    "phishing_precision": 0.995093,
+    "benign_recall": 0.554302,
+    "phishing_recall": 0.59798,
+    "false_safe_rate": 0.003763,
+    "false_phishing_rate": 0.002181,
+    "counts": {
+      "safe": 22226,
+      "unknown": 29444,
+      "phishing": 17728,
+      "false_safe": 111,
+      "false_phishing": 87
+    }
+  },
+  "development_metrics": {
+    "roc_auc": 0.966914,
+    "pr_auc": 0.958649,
+    "brier_score": 0.070887,
+    "log_loss": 0.234547,
+    "lower_threshold": 0.02080689,
+    "upper_threshold": 0.9762182,
+    "decisive_coverage": 0.510224,
+    "unknown_rate": 0.489776,
+    "safe_precision": 0.987412,
+    "phishing_precision": 0.993417,
+    "benign_recall": 0.564278,
+    "phishing_recall": 0.424576,
+    "false_safe_rate": 0.009729,
+    "false_phishing_rate": 0.00208,
+    "counts": {
+      "safe": 22800,
+      "unknown": 33989,
+      "phishing": 12608,
+      "false_safe": 287,
+      "false_phishing": 83
+    }
+  },
+  "development_gate": {
+    "safe_precision_at_least_0_995": false,
+    "phishing_precision_at_least_0_995": false
+  },
+  "v2_development_comparison": {
+    "roc_auc": {
+      "v2": 0.989293,
+      "v3": 0.966914,
+      "delta": -0.022379
+    },
+    "pr_auc": {
+      "v2": 0.985446,
+      "v3": 0.958649,
+      "delta": -0.026797
+    },
+    "safe_precision": {
+      "v2": 0.994485,
+      "v3": 0.987412,
+      "delta": -0.007073
+    },
+    "phishing_precision": {
+      "v2": 0.995693,
+      "v3": 0.993417,
+      "delta": -0.002276
+    },
+    "decisive_coverage": {
+      "v2": 0.670216,
+      "v3": 0.510224,
+      "delta": -0.159992
+    }
+  },
+  "future_holdout_required_for_any_later_candidate": true,
+  "promotion_ready": false
+}

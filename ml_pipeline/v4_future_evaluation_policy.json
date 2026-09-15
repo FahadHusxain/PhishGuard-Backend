@@ -1,0 +1,57 @@
+{
+  "policy_version": 1,
+  "candidate": "v4_lexical_structural_ensemble",
+  "candidate_commit": "b62de62baef9cc12a0a90b1dce411678ed82b997",
+  "candidate_frozen_at": "2026-09-12T01:52:43+05:00",
+  "candidate_sha256": "ecfad83fdb02552e264f609bc17992bdd95951901cd65919115a36400249cbc2",
+  "component_sha256": {
+    "v2_lexical": "c4f10d32f8b6df65f32fb76de37d4b43278c5f94ef44ca8fdf80c079e4c6216c",
+    "v3_structural": "25bf55bb8874378837ff85412ff6e0cee8f0754bfe643e7c0a52d171eabf66aa"
+  },
+  "thresholds_are_frozen": true,
+  "data_contract": {
+    "snapshot_acquired_after_candidate_freeze": true,
+    "every_observation_after_candidate_freeze": true,
+    "complete_http_or_https_urls_only": true,
+    "timezone_aware_observation_times_required": true,
+    "evaluation_rights_review_required": true,
+    "minimum_retained_rows_per_label": 2000,
+    "minimum_independent_sources_total": 2,
+    "minimum_independent_sources_per_label": 1,
+    "exclude_any_registrable_domain_seen_in_training": true,
+    "quarantine_cross_label_holdout_domains": true,
+    "collapse_canonical_duplicate_urls": true,
+    "minimum_rows_per_reported_slice": 100
+  },
+  "aggregate_gate": {
+    "pr_auc_at_least": 0.97,
+    "safe_precision_at_least": 0.99,
+    "phishing_precision_at_least": 0.99,
+    "decisive_coverage_at_least": 0.6,
+    "false_safe_rate_at_most": 0.01,
+    "false_phishing_rate_at_most": 0.005
+  },
+  "source_quality_gate": {
+    "minimum_retained_rows": 500,
+    "false_safe_rate_at_most": 0.02,
+    "false_phishing_rate_at_most": 0.01
+  },
+  "realistic_prevalence_scenarios": [
+    0.0005,
+    0.001,
+    0.005,
+    0.01,
+    0.05
+  ],
+  "operational_gate": {
+    "total_artifact_size_bytes_at_most": 4194304,
+    "single_url_p95_latency_ms_at_most": 20.0,
+    "batch_throughput_urls_per_second_at_least": 200.0
+  },
+  "promotion_rule": "Every data, aggregate, source-quality, and operational gate must pass without changing the candidate or thresholds.",
+  "post_evaluation_requirements": [
+    "Manual aggregate error review without redistributing source URLs",
+    "Shadow-mode comparison in a production-shaped deployment",
+    "Explicit maintainer approval before production integration"
+  ]
+}

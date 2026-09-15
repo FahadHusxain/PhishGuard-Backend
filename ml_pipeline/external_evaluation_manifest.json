@@ -1,0 +1,22 @@
+{
+  "retrieved_utc_date": "2026-09-10",
+  "purpose": "Frozen no-tuning external evaluation only",
+  "sources": {
+    "phishing": {
+      "name": "PhishTank verified online feed",
+      "url": "https://data.phishtank.com/data/online-valid.csv.bz2",
+      "sha256": "6a939f2acd04810ca36b57cc05a59a757e35c935c9c4a1acee5f7222e0f28182",
+      "local_filename": "phishtank-online-valid.csv.bz2",
+      "rows": 75471
+    },
+    "benign": {
+      "name": "Tranco daily top one million domains",
+      "url": "https://tranco-list.eu/download/daily/top-1m.csv.zip",
+      "list_page": "https://tranco-list.eu/list/94XL2/1000000",
+      "sha256": "2105f971722862c6b5f6a544630eb5e4f1b85bebc4d069a225d6e99018a6d3e7",
+      "local_filename": "tranco-top-1m.csv.zip",
+      "rows": 1000000
+    }
+  },
+  "redistribution": "Raw feed contents are intentionally excluded from Git."
+}

@@ -1,0 +1,94 @@
+{
+  "contract_version": 2,
+  "min_samples_per_label": 1000,
+  "input_rows": 462851,
+  "unique_urls": 462644,
+  "retained_urls": 462644,
+  "invalid_rows": 0,
+  "conflicting_urls": 0,
+  "cross_source_duplicate_urls": 2,
+  "labels": {
+    "benign": 265978,
+    "phishing": 196666
+  },
+  "sources_per_label": {
+    "0": [
+      "phishvn-v3.1.0",
+      "phreshphish-v1.0.1"
+    ],
+    "1": [
+      "phishvn-v3.1.0",
+      "phreshphish-v1.0.1"
+    ]
+  },
+  "timestamp_coverage": {
+    "benign": 0.9651362142733609,
+    "phishing": 1.0
+  },
+  "full_url_coverage": {
+    "benign": 0.958925174262533,
+    "phishing": 0.9895609815626494
+  },
+  "licensed_coverage": {
+    "benign": 1.0,
+    "phishing": 1.0
+  },
+  "shared_label_groups": 0,
+  "training_ready": true,
+  "readiness_failures": [],
+  "pre_adjudication": {
+    "contract_version": 2,
+    "min_samples_per_label": 1000,
+    "input_rows": 511335,
+    "unique_urls": 506666,
+    "retained_urls": 506665,
+    "invalid_rows": 4446,
+    "conflicting_urls": 1,
+    "cross_source_duplicate_urls": 3,
+    "labels": {
+      "benign": 283533,
+      "phishing": 223132
+    },
+    "sources_per_label": {
+      "0": [
+        "phishvn-v3.1.0",
+        "phreshphish-v1.0.1"
+      ],
+      "1": [
+        "phishvn-v3.1.0",
+        "phreshphish-v1.0.1"
+      ]
+    },
+    "timestamp_coverage": {
+      "benign": 0.9670514543280676,
+      "phishing": 1.0
+    },
+    "full_url_coverage": {
+      "benign": 0.961210864343833,
+      "phishing": 0.9906960902066938
+    },
+    "licensed_coverage": {
+      "benign": 1.0,
+      "phishing": 1.0
+    },
+    "shared_label_groups": 339,
+    "training_ready": false,
+    "readiness_failures": [
+      "registrable domains with conflicting labels require adjudication"
+    ]
+  },
+  "quarantine": {
+    "invalid_rows": 4446,
+    "quarantined_groups": 340,
+    "quarantined_rows": 44038,
+    "retained_rows": 462851
+  },
+  "audited_sources": [
+    "phreshphish-v1.0.1",
+    "phishvn-v3.1.0"
+  ],
+  "preserved_holdouts": [
+    "PhreshPhish published test split",
+    "PhishVN published validation and test splits"
+  ]
+}

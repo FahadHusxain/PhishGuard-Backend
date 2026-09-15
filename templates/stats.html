@@ -1,83 +1,43 @@
-<!DOCTYPE html>
+{% load static %}
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PhishGuard Analytics</title>
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body { background-color: #0f172a; color: #00f3ff; font-family: 'Rajdhani', sans-serif; text-align: center; padding: 20px; }
-        h1 { font-size: 3rem; text-shadow: 0 0 10px #00f3ff; margin-bottom: 10px; }
-        .grid { display: flex; justify-content: center; gap: 20px; margin-bottom: 40px; }
-        .card { background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 10px; border: 1px solid #00f3ff; width: 200px; }
-        .number { font-size: 2.5rem; font-weight: bold; color: white; }
-        .label { font-size: 1rem; color: #94a3b8; }
-        
-        .chart-container { width: 80%; margin: 0 auto; background: rgba(0,0,0,0.3); padding: 20px; border-radius: 15px; }
-    </style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Aggregate PhishGuard scan statistics.">
+    <title>PhishGuard | Intelligence</title>
+    <link rel="icon" href="{% static 'phishguard/favicon.svg' %}" type="image/svg+xml">
+    <link rel="stylesheet" href="{% static 'phishguard/dashboard.css' %}">
+    <script src="{% static 'phishguard/dashboard.js' %}" defer></script>
 </head>
-<body>
-
-    <h1>🛡️ PHISHGUARD LIVE INTEL</h1>
-    <p>Real-Time Threat Monitoring System</p>
-
-    <div class="grid">
-        <div class="card">
-            <div id="total" class="number">0</div>
-            <div class="label">Total Scans</div>
-        </div>
-        <div class="card">
-            <div id="threats" class="number" style="color: #ef4444;">0</div>
-            <div class="label">Threats Blocked</div>
-        </div>
-        <div class="card">
-            <div id="safe" class="number" style="color: #22c55e;">0</div>
-            <div class="label">Safe Sites</div>
-        </div>
+<body data-page="analytics">
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <div class="app-shell">
+        <aside class="side-rail">
+            <a class="brand" href="/"><span class="brand-shield" aria-hidden="true">PG</span><span class="brand-copy"><strong>PHISHGUARD</strong><small>Threat console</small></span></a>
+            <nav aria-label="Primary navigation"><a href="/"><span>01</span> Analyze</a><a class="active" href="/api/analytics/"><span>02</span> Intelligence</a></nav>
+            <div class="rail-links"><a href="/api/docs/">API documentation <span aria-hidden="true">↗</span></a></div>
+            <div class="system-state"><i aria-hidden="true"></i><span>Engine online</span></div>
+        </aside>
+        <main id="main-content" class="workspace">
+            <header class="console-header"><div><p class="kicker">Aggregate intelligence</p><h1>Verdict analytics</h1></div><a class="privacy-badge" href="/">← Analysis console</a></header>
+            <section class="analytics-intro"><p>Privacy-conscious totals from recorded URL investigations.</p></section>
+            <section class="metrics" aria-label="Aggregate scan statistics">
+                <article class="metric-card total"><span>Total analyzed</span><strong id="total-scans">0</strong><small>Recorded checks</small></article>
+                <article class="metric-card danger"><span>Threats flagged</span><strong id="phishing-count">0</strong><small>High-risk verdicts</small></article>
+                <article class="metric-card safe"><span>Clear signals</span><strong id="safe-count">0</strong><small>Safe verdicts</small></article>
+                <article class="metric-card unknown"><span>Needs caution</span><strong id="unknown-count">0</strong><small>Inconclusive verdicts</small></article>
+            </section>
+            <section class="module distribution-module" aria-labelledby="distribution-title">
+                <div class="module-heading"><div><p class="kicker">Signal breakdown</p><h2 id="distribution-title">Verdict distribution</h2></div><span id="stats-status" class="status-chip">Connecting</span></div>
+                <div class="progress-group">
+                    <label for="safe-progress"><span>Safe</span><strong id="safe-percent">0%</strong></label><progress id="safe-progress" class="safe-progress" max="100" value="0">0%</progress>
+                    <label for="phishing-progress"><span>Phishing</span><strong id="phishing-percent">0%</strong></label><progress id="phishing-progress" class="danger-progress" max="100" value="0">0%</progress>
+                    <label for="unknown-progress"><span>Inconclusive</span><strong id="unknown-percent">0%</strong></label><progress id="unknown-progress" max="100" value="0">0%</progress>
+                </div>
+            </section>
+            <footer><p>PhishGuard <span>•</span> Aggregate statistics only</p><a href="/api/schema/">OpenAPI schema</a></footer>
+        </main>
     </div>
-
-    <div class="chart-container">
-        <canvas id="scanChart"></canvas>
-    </div>
-
-    <script>
-        async function loadStats() {
-            // API se data mangwao
-            const response = await fetch('/api/stats/');
-            const data = await response.json();
-
-            // Cards Update karo
-            document.getElementById('total').innerText = data.total_scans;
-            document.getElementById('threats').innerText = data.phishing_count;
-            document.getElementById('safe').innerText = data.total_scans - data.phishing_count;
-
-            // Chart Banao
-            const ctx = document.getElementById('scanChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar', // Bar chart
-                data: {
-                    labels: ['Safe', 'Phishing', 'Whitelisted'],
-                    datasets: [{
-                        label: 'Scan Activity',
-                        data: [
-                            data.total_scans - data.phishing_count, 
-                            data.phishing_count, 
-                            data.whitelist_count
-                        ],
-                        backgroundColor: ['#22c55e', '#ef4444', '#eab308'],
-                        borderColor: ['#22c55e', '#ef4444', '#eab308'],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, grid: { color: '#334155' } } }
-                }
-            });
-        }
-        loadStats();
-    </script>
 </body>
 </html>
