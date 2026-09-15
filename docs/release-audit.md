@@ -1,9 +1,10 @@
 # Release-readiness audit
 
 This living audit covers the modernization branch through the legal,
-artifact-provenance, and scoped-verdict phases completed on 2026-09-12. It is
-not release approval. The exact release-candidate SHA must be recorded and
-rechecked after final UI review.
+artifact-provenance, scoped-verdict, threat-intelligence, cross-machine, and
+staging-preparation phases rechecked on 2026-09-16. It is not release approval.
+The exact release-candidate SHA and its CI run must still be recorded before
+merge.
 
 ## Verified locally
 
@@ -36,6 +37,20 @@ rechecked after final UI review.
   against the rebuilt Compose service. GitHub and Facebook official roots were
   low risk, the unreviewed YTS URL was inconclusive, and the loopback URL was
   high risk with its IP-address and nonstandard-port signals explained.
+- On 2026-09-16, the branch passed 158 Django tests with 77% branch-aware
+  coverage against the configured 75% minimum. Ruff lint and format checks,
+  Django system and hardened-deployment checks, migration drift detection,
+  warning-free OpenAPI validation, documentation and repository checks,
+  reference-data verification, Render Blueprint invariants, seven Node
+  extension tests, and extension manifest/CSP/permission checks all passed.
+- The installed Python environment reported no known vulnerabilities under
+  `pip-audit --local --strict` on 2026-09-16. This is a time-bounded result and
+  must be rerun for the immutable release candidate.
+- Fahad Hussain independently cloned the feature branch on a second Windows
+  laptop, created separate local secrets, built the Compose stack, synchronized
+  the OpenPhish Community feed, and confirmed normal local operation. No secret,
+  database volume, or machine-specific environment file was transferred from
+  Asad Abbas's laptop.
 
 ## Blocking owner decisions
 
@@ -59,6 +74,20 @@ grant are documented separately in `THIRD_PARTY_NOTICES.md`.
    2026-09-13. This is project review evidence, not a formal WCAG certification.
 4. **ML promotion:** v4 remains shadow-only until a qualifying prospective
    holdout and controlled shadow review pass the frozen policy.
+
+## Final local-gate status
+
+The local code-quality, security, schema, API, extension, and reproducibility
+gates are green. The tracked feature branch remains separate from `main`, and
+the active verdict continues to use explainable rules plus exact current
+threat-intelligence matches. Both historical ML and the v4 candidate remain
+disabled for user-visible decisions.
+
+The remaining release gate is procedural rather than a known code failure:
+create an immutable candidate commit, push it, require both GitHub Actions jobs
+to pass for that exact SHA, complete the final owner review, and record explicit
+approval before merging. Hosted-production controls remain intentionally open
+because the project currently uses the local Docker demonstration path.
 
 ## Hosting-only evidence still required
 

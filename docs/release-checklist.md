@@ -8,23 +8,23 @@ for production. Complete it against one immutable candidate commit.
 - [ ] Candidate commit SHA and release version are recorded.
 - [x] The project owners selected MIT for original PhishGuard work and added
       separate third-party notices and exclusions.
-- [ ] Intended changes and known limitations are understandable to a reviewer.
-- [ ] Architecture, threat model, API schema, model cards, and operations runbook
+- [x] Intended changes and known limitations are understandable to a reviewer.
+- [x] Architecture, threat model, API schema, model cards, and operations runbook
       match the candidate.
 - [x] Final UI review is complete for the desktop dashboard and narrow browser
       extension popup, including keyboard navigation and result states.
-- [ ] The historical and candidate ML models remain disabled unless a separate,
+- [x] The historical and candidate ML models remain disabled unless a separate,
       documented promotion review has passed.
 
 ## Quality and security
 
 - [ ] Required GitHub Actions jobs pass for the exact candidate SHA.
-- [ ] Test coverage meets the configured threshold.
-- [ ] No pending migrations or OpenAPI validation warnings exist.
-- [ ] Installed dependencies have no known audited vulnerability.
-- [ ] Secret scanning and repository inspection find no real credentials,
+- [x] Test coverage meets the configured threshold.
+- [x] No pending migrations or OpenAPI validation warnings exist.
+- [x] Installed dependencies have no known audited vulnerability.
+- [x] Secret scanning and repository inspection find no real credentials,
       environment files, databases, private scan data, or generated caches.
-- [ ] Security-sensitive changes have regression tests and threat-model updates.
+- [x] Security-sensitive changes have regression tests and threat-model updates.
 - [x] An authorized reviewer tested official-root, unreviewed-site, and
       high-risk structural URL cases against the rebuilt local candidate.
 - [ ] An authorized reviewer has tested malformed and unsupported URL inputs.
@@ -42,7 +42,7 @@ for production. Complete it against one immutable candidate commit.
 ## Recovery and lifecycle
 
 - [ ] A fresh encrypted backup exists and its retention policy is documented.
-- [ ] Restore has succeeded in an isolated environment.
+- [x] Restore has succeeded in an isolated environment.
 - [ ] Previous application image and database-compatible rollback procedure exist.
 - [ ] Readiness alerts, error-log alerts, and an operator contact are configured.
 - [ ] Daily scan-log purging is scheduled and audit-log retention is approved.
