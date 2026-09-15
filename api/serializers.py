@@ -88,13 +88,19 @@ class PredictionResponseSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=["SAFE", "PHISHING", "UNKNOWN"])
     confidence = serializers.FloatField(min_value=0, max_value=100)
     confidence_basis = serializers.ChoiceField(
-        choices=["rule-score", "policy-assurance"], required=False
+        choices=["rule-score", "policy-assurance", "threat-intelligence"],
+        required=False,
     )
     risk_score = serializers.FloatField(min_value=0, max_value=100, required=False)
     message = serializers.CharField()
     country = serializers.CharField()
     engine = serializers.ChoiceField(
-        choices=["rules-only", "verified-domain-rules"], required=False
+        choices=[
+            "rules-only",
+            "verified-domain-rules",
+            "threat-intelligence-rules",
+        ],
+        required=False,
     )
     shadow_engine = serializers.ChoiceField(
         choices=["v4-ensemble"],

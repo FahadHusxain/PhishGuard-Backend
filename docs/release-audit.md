@@ -28,6 +28,10 @@ rechecked after final UI review.
   deterministically generated, and checked in CI.
 - Exact official-platform roots use a separate reviewed registry with a
   fail-closed Django system check; popularity alone never produces `SAFE`.
+- A fresh OpenPhish Community snapshot was imported locally on 2026-09-15 as
+  300 SHA-256 URL digests with no raw URLs retained. An in-memory current-feed
+  check returned `PHISHING` through `threat-intelligence-rules`; exact-path,
+  stale-feed, disabled-mode, and replacement behavior are covered by tests.
 - On 2026-09-12, Asad Abbas visually reviewed the browser-extension results
   against the rebuilt Compose service. GitHub and Facebook official roots were
   low risk, the unreviewed YTS URL was inconclusive, and the loopback URL was

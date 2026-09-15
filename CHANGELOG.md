@@ -8,6 +8,9 @@ approved for merge.
 
 ### Added
 
+- Privacy-reduced exact-URL threat-intelligence storage and lookup.
+- Fail-safe OpenPhish Community and local PhishTank feed synchronization with
+  freshness enforcement and full-snapshot replacement semantics.
 - Versioned `/api/v1/` contract, OpenAPI schema, and self-hosted documentation.
 - Request correlation, structured production logging, liveness, and dependency
   readiness probes.

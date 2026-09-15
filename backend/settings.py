@@ -268,6 +268,21 @@ PHISHGUARD_V4_STRUCTURAL_PATH = Path(
     )
 )
 PHISHGUARD_PHISHING_THRESHOLD = float(os.getenv("PHISHGUARD_PHISHING_THRESHOLD", "50"))
+PHISHGUARD_THREAT_INTELLIGENCE_ENABLED = env_bool(
+    "PHISHGUARD_THREAT_INTELLIGENCE_ENABLED", default=True
+)
+try:
+    PHISHGUARD_THREAT_FEED_MAX_AGE_HOURS = int(
+        os.getenv("PHISHGUARD_THREAT_FEED_MAX_AGE_HOURS", "36")
+    )
+except ValueError as exc:
+    raise ImproperlyConfigured(
+        "PHISHGUARD_THREAT_FEED_MAX_AGE_HOURS must be a positive integer."
+    ) from exc
+if PHISHGUARD_THREAT_FEED_MAX_AGE_HOURS < 1:
+    raise ImproperlyConfigured(
+        "PHISHGUARD_THREAT_FEED_MAX_AGE_HOURS must be a positive integer."
+    )
 
 if not 0.0 <= PHISHGUARD_PHISHING_THRESHOLD <= 100.0:
     raise ImproperlyConfigured(

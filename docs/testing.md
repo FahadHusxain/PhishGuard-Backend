@@ -42,6 +42,7 @@ the demonstration to a single memorized URL. Select examples from each class:
 | Unusual port | `https://example.com:8443/login` | Nonstandard-port signal |
 | Malformed input | `not a URL` | Stable validation error; no server crash |
 | Unsupported scheme | `javascript:alert(1)` | Rejected before analysis |
+| Current feed match | Operator-selected local fixture | Exact digest match produces a threat-intelligence verdict |
 
 Reserved example domains and addresses are used here so testing does not accuse
 a real organization or contact an arbitrary target. For an examiner-provided
@@ -58,6 +59,12 @@ URL, the important invariants are:
 The verdict for a previously unseen URL is not predetermined. Claims of perfect
 detection would be scientifically invalid; discuss false positives, false
 negatives, and the disabled ML candidate openly.
+
+Threat-feed tests use reserved local fixtures, never live malicious URLs in
+Git. Verify exact matching, fragment and default-port normalization, path
+isolation, stale-snapshot fallback, full-snapshot deactivation, disabled-mode
+behavior, and the absence of raw URLs from the indicator table. Operational
+feed sync is documented in [Threat intelligence operations](threat-intelligence.md).
 
 ## Manual API checks
 

@@ -112,3 +112,47 @@ class ScanLog(models.Model):
 
     def __str__(self):
         return f"{self.origin} - {self.status}"
+
+
+class ThreatIndicator(models.Model):
+    """Privacy-reduced exact URL indicator imported from a reviewed feed."""
+
+    source = models.CharField(max_length=64)
+    url_sha256 = models.CharField(max_length=64)
+    first_seen = models.DateTimeField()
+    last_seen = models.DateTimeField()
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ("source", "url_sha256")
+        constraints = (
+            models.UniqueConstraint(
+                fields=("source", "url_sha256"),
+                name="threat_indicator_source_url_unique",
+            ),
+        )
+        indexes = (
+            models.Index(
+                fields=("url_sha256", "active"),
+                name="threat_indicator_lookup_idx",
+            ),
+        )
+
+    def __str__(self):
+        return f"{self.source}:{self.url_sha256[:12]}"
+
+
+class ThreatFeedSnapshot(models.Model):
+    """Non-sensitive provenance and freshness metadata for one feed source."""
+
+    source = models.CharField(max_length=64, unique=True)
+    retrieved_at = models.DateTimeField()
+    imported_at = models.DateTimeField(auto_now=True)
+    content_sha256 = models.CharField(max_length=64)
+    indicator_count = models.PositiveIntegerField()
+
+    class Meta:
+        ordering = ("source",)
+
+    def __str__(self):
+        return f"{self.source} ({self.indicator_count})"

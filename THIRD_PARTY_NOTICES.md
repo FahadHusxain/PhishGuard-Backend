@@ -81,6 +81,33 @@ from the release tree. Their existence and the CNN's rejection remain visible
 in Git history and `ml_models/MODEL_CARD.md`; they must not be restored or
 redistributed unless the owners establish their origin and applicable terms.
 
+## Optional runtime threat intelligence
+
+Threat feeds are operational inputs, are excluded from Git, and are not
+licensed under this repository's MIT License. The application stores only
+SHA-256 URL digests and non-sensitive snapshot metadata.
+
+### OpenPhish Community Feed
+
+- Provider: OpenPhish
+- Information: <https://www.openphish.com/phishing_feeds.html>
+- Terms: <https://www.openphish.com/terms.html>
+- Use in PhishGuard: optional exact-URL matching for this non-commercial
+  academic project after an operator explicitly accepts the current terms.
+- Restrictions: OpenPhish describes personal, academic, and independent
+  research use and restricts commercial use and redistribution without written
+  permission. Operators must review the current terms themselves.
+
+### PhishTank verified online feed
+
+- Provider: PhishTank, operated by Cisco Talos Intelligence Group
+- Information: <https://phishtank.org/developer_info.php>
+- Use in PhishGuard: optional import of an operator-obtained local CSV snapshot
+  containing verified online phishing URLs.
+- Restrictions: operators remain responsible for reviewing current terms,
+  registration, application-key, rate-limit, attribution, and distribution
+  requirements before use.
+
 ## Software dependencies
 
 Python, JavaScript, container-base, Swagger UI, and browser-platform

@@ -32,6 +32,7 @@ from .serializers import (
     hostname_from_url,
     redact_url_for_storage,
 )
+from .threat_intelligence import find_active_threat
 from .throttles import (
     AdministrationRateThrottle,
     AnalysisRateThrottle,
@@ -127,6 +128,21 @@ def predict_url(request):
 
     listed_domain = _listed_domain(hostname)
     result = predict_url_security(url)
+    threat_match = find_active_threat(url)
+    if threat_match is not None:
+        existing_signals = list(result.get("signals", []))
+        feed_signal = "Exact URL matches current reviewed phishing intelligence"
+        result.update(
+            {
+                "status": "PHISHING",
+                "confidence": 100.0,
+                "confidence_basis": "threat-intelligence",
+                "risk_score": 100.0,
+                "message": feed_signal,
+                "engine": "threat-intelligence-rules",
+                "signals": [feed_signal, *existing_signals],
+            }
+        )
     result["domain_listed"] = listed_domain is not None
     if result["status"] == "SAFE" and result.get("engine") == "verified-domain-rules":
         result["domain_context"] = (

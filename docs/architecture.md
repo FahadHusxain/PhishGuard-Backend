@@ -62,7 +62,8 @@ which is covered by the readiness probe.
 | `api/middleware.py` | Request IDs, request limits, response cache controls and browser security headers |
 | `api/serializers.py` | Input validation, hostname extraction, and storage redaction |
 | `api/domains.py` | Canonical hostname and public-suffix-aware list candidates |
-| `api/ml_logic.py` | Explainable rule scoring and optional hybrid model combination |
+| `api/ml_logic.py` | Explainable rule scoring and optional shadow-model comparison |
+| `api/threat_intelligence.py` | Fresh exact-URL indicator hashing and lookup |
 | `api/views.py` | API orchestration, permissions, audit creation and scan persistence |
 | `api/dashboard.py` | Short-lived aggregate cache and query-efficient statistics |
 | `browser-extension/` | Manifest V3 popup client for active-tab and pasted-URL analysis |
@@ -77,6 +78,8 @@ which is covered by the readiness probe.
 | Scan log | normalized origin, verdict, confidence, optional resolved IP/country, timestamp | operationally sensitive | 30 days by default |
 | Listed domain | canonical ASCII hostname and active reference rank | internal configuration | until administratively changed |
 | Trust audit event | domain, action, actor identity snapshot, reason, request ID, timestamp | security audit | retain according to institutional policy |
+| Threat indicator | SHA-256 URL digest, source, activity state, timestamps | restricted threat intelligence | while permitted and operationally useful |
+| Feed snapshot | source, retrieval/import times, content checksum, count | operational provenance | according to institutional policy |
 
 For scan logs, the origin contains only scheme, hostname, and explicit port.
 Paths, queries, fragments, and credentials are removed before persistence.
@@ -91,15 +94,19 @@ background service worker and does not alter visited pages.
 
 1. Strict parsing accepts only complete HTTP or HTTPS URLs with valid hosts.
 2. Canonical hostname candidates are checked against the domain reference list.
-3. Independent URL-structure rules always produce a risk score and reasons;
+3. A fresh reviewed threat feed may identify an exact canonical URL by its
+   stored SHA-256 digest. Raw feed and submitted URLs are not retained by this
+   lookup.
+4. Independent URL-structure rules always produce a risk score and reasons;
    list membership never bypasses detection.
-4. A score at or above the configured threshold is `PHISHING`.
-5. An exact HTTPS root in the small reviewed official-platform registry may be
+5. A fresh exact threat-intelligence match or a rule score at or above the
+   configured threshold is `PHISHING`.
+6. An exact HTTPS root in the small reviewed official-platform registry may be
    `SAFE` when no high-risk rule matches. This policy never extends to content
    paths, queries, fragments, nonstandard ports, or arbitrary subdomains.
-6. Other rules-only analysis below the threshold is `UNKNOWN`, not `SAFE`, because
+7. Other rules-only analysis below the threshold is `UNKNOWN`, not `SAFE`, because
    absence of a lexical signal is not proof of safety.
-7. `domain_listed` and `domain_context` provide reputation context separately;
+8. `domain_listed` and `domain_context` provide reputation context separately;
    popularity or an administrative list entry never verifies the exact page.
 
 The historical CNN was removed. The current v4 candidate remains shadow-only;
